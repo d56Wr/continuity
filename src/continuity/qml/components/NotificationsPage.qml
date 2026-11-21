@@ -30,8 +30,8 @@ Item {
 
         ListView {
             id: list
-
-            Kirigami.WheelHandler { target: list; filterMouseEvents: true; keyNavigationEnabled: true }            Layout.fillWidth: true
+            Kirigami.WheelHandler { target: list; filterMouseEvents: true; keyNavigationEnabled: true }
+            Layout.fillWidth: true
             Layout.fillHeight: true
             Layout.maximumWidth: 720
             Layout.alignment: Qt.AlignHCenter

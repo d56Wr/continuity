@@ -96,8 +96,8 @@ Rectangle {
         // contact suggestions while composing
         ListView {
             id: suggestions
-
-            Kirigami.WheelHandler { target: suggestions; filterMouseEvents: true; keyNavigationEnabled: true }            Layout.fillWidth: true
+            Kirigami.WheelHandler { target: suggestions; filterMouseEvents: true; keyNavigationEnabled: true }
+            Layout.fillWidth: true
             Layout.preferredHeight: Math.min(contentHeight, 260)
             visible: root.composing && to.activeFocus || root.composing && activeFocus
             clip: true
@@ -126,8 +126,8 @@ Rectangle {
         // ---------------------------------------------------------- messages
         ListView {
             id: thread
-
-            Kirigami.WheelHandler { target: thread; filterMouseEvents: true; keyNavigationEnabled: true }            Layout.fillWidth: true
+            Kirigami.WheelHandler { target: thread; filterMouseEvents: true; keyNavigationEnabled: true }
+            Layout.fillWidth: true
             Layout.fillHeight: true
             visible: root.hasThread
             clip: true

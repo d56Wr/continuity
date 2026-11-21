@@ -98,8 +98,8 @@ Item {
 
                 ListView {
                     id: list
-
-                    Kirigami.WheelHandler { target: list; filterMouseEvents: true; keyNavigationEnabled: true }                    Layout.fillWidth: true
+                    Kirigami.WheelHandler { target: list; filterMouseEvents: true; keyNavigationEnabled: true }
+                    Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
                     model: phone.conversations
