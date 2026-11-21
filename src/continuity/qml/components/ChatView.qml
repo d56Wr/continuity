@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Dialogs
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
@@ -17,7 +18,7 @@ Rectangle {
     }
     function focusComposer() { composer.forceActiveFocus() }
 
-    readonly property bool hasThread: phone.threadId >= 0 && !composing
+    readonly property bool hasThread: phone.threadId !== "" && !composing
 
     ColumnLayout {
         anchors.fill: parent
@@ -115,7 +116,7 @@ Rectangle {
                 function pick() {
                     to.text = model.number
                     const tid = phone.threadForNumber(model.number)
-                    if (tid >= 0) { root.composeFinished(); phone.openThread(tid) }
+                    if (tid !== "") { root.composeFinished(); phone.openThread(tid) }
                     composer.forceActiveFocus()
                 }
             }
@@ -179,6 +180,12 @@ Rectangle {
             spacing: 8
             visible: root.hasThread || root.composing
 
+            IconButton {
+                iconName: "mail-attachment-symbolic"
+                tip: qsTr("Send photo or file")
+                visible: phone.messageSource === "google" && root.hasThread
+                onClicked: attachDialog.open()
+            }
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: Math.min(140, Math.max(36, composer.implicitHeight + 10))
@@ -192,7 +199,8 @@ Rectangle {
                     anchors.rightMargin: 12
                     TextArea {
                         id: composer
-                        placeholderText: qsTr("Text Message")
+                        placeholderText: phone.messageSource === "google" && phone.threadIsRcs
+                                         ? qsTr("RCS Message") : qsTr("Text Message")
                         wrapMode: TextEdit.Wrap
                         color: Theme.text
                         background: null
@@ -208,12 +216,24 @@ Rectangle {
                 iconName: "go-up-symbolic"
                 size: 30
                 filled: true
-                fill: Theme.accent
+                fill: phone.messageSource === "google" && !phone.threadIsRcs && root.hasThread ? Theme.green : Theme.accent
                 enabled: composer.text.trim() !== "" && (root.hasThread || to.text.trim() !== "")
                 tip: qsTr("Send")
                 onClicked: root.send()
             }
         }
+    }
+
+    FileDialog {
+        id: attachDialog
+        fileMode: FileDialog.OpenFiles
+        title: qsTr("Send photo or file")
+        onAccepted: phone.sendFilesToThread(selectedFiles)
+    }
+    DropArea {
+        anchors.fill: parent
+        enabled: phone.messageSource === "google" && root.hasThread
+        onDropped: (d) => { if (d.hasUrls) phone.sendFilesToThread(d.urls) }
     }
 
     function send() {
@@ -224,7 +244,7 @@ Rectangle {
             phone.sendNew(to.text, text)
             const tid = phone.threadForNumber(to.text)
             root.composeFinished()
-            if (tid >= 0) phone.openThread(tid)
+            if (tid !== "") phone.openThread(tid)
         } else {
             phone.sendReply(text)
         }

@@ -93,12 +93,87 @@
         <translation>Vyber konverzaci</translation>
     </message>
     <message>
+        <source>Send photo or file</source>
+        <translation>Poslat fotku nebo soubor</translation>
+    </message>
+    <message>
         <source>Text Message</source>
         <translation>Textová zpráva</translation>
     </message>
     <message>
+        <source>RCS Message</source>
+        <translation>Zpráva RCS</translation>
+    </message>
+    <message>
         <source>Send</source>
         <translation>Odeslat</translation>
+    </message>
+</context>
+<context>
+    <name>GoogleMessagesCard</name>
+    <message>
+        <source>Google Messages · SMS and RCS</source>
+        <translation>Google Zprávy · SMS a RCS</translation>
+    </message>
+    <message>
+        <source>Waiting for the QR code to be scanned…</source>
+        <translation>Čekám na naskenování QR kódu…</translation>
+    </message>
+    <message>
+        <source>Pair to see RCS chats (including iPhones) with read receipts, reactions and full-size photos in Messages.</source>
+        <translation>Spáruj a ve Zprávách uvidíš i RCS chaty (včetně iPhonů) s potvrzením přečtení, reakcemi a fotkami v plné kvalitě.</translation>
+    </message>
+    <message>
+        <source>Google Messages is open somewhere else.</source>
+        <translation>Google Zprávy jsou otevřené jinde.</translation>
+    </message>
+    <message>
+        <source>Connected — Messages shows SMS and RCS.</source>
+        <translation>Připojeno — Zprávy ukazují SMS i RCS.</translation>
+    </message>
+    <message>
+        <source>Connecting…</source>
+        <translation>Připojuji…</translation>
+    </message>
+    <message>
+        <source>Pair with QR code</source>
+        <translation>Spárovat QR kódem</translation>
+    </message>
+    <message>
+        <source>Use here</source>
+        <translation>Použít zde</translation>
+    </message>
+    <message>
+        <source>Unpair</source>
+        <translation>Zrušit spárování</translation>
+    </message>
+    <message>
+        <source>Cancel</source>
+        <translation>Zrušit</translation>
+    </message>
+    <message>
+        <source>1. On your phone open Google Messages.</source>
+        <translation>1. V telefonu otevři Google Zprávy.</translation>
+    </message>
+    <message>
+        <source>2. Tap your profile picture → Device pairing.</source>
+        <translation>2. Klepni na svou profilovou fotku → Párování zařízení.</translation>
+    </message>
+    <message>
+        <source>3. Tap “QR code scanner” and point the phone at this code.</source>
+        <translation>3. Klepni na „Skener QR kódů“ a namiř telefon na tento kód.</translation>
+    </message>
+    <message>
+        <source>The code refreshes automatically.</source>
+        <translation>Kód se sám obnovuje.</translation>
+    </message>
+    <message>
+        <source>Unpair Google Messages?</source>
+        <translation>Zrušit spárování Google Zpráv?</translation>
+    </message>
+    <message>
+        <source>Messages will fall back to SMS from KDE Connect.</source>
+        <translation>Zprávy se vrátí k SMS z KDE Connectu.</translation>
     </message>
 </context>
 <context>
@@ -144,6 +219,14 @@
     <message>
         <source>New message</source>
         <translation>Nová zpráva</translation>
+    </message>
+    <message>
+        <source>Google Messages is open somewhere else.</source>
+        <translation>Google Zprávy jsou otevřené jinde.</translation>
+    </message>
+    <message>
+        <source>Use here</source>
+        <translation>Použít zde</translation>
     </message>
     <message>
         <source>All</source>
@@ -246,8 +329,36 @@
         <translation>Příloha</translation>
     </message>
     <message>
+        <source>Sent</source>
+        <translation>Odesláno</translation>
+    </message>
+    <message>
+        <source>Delivered</source>
+        <translation>Doručeno</translation>
+    </message>
+    <message>
+        <source>Read</source>
+        <translation>Přečteno</translation>
+    </message>
+    <message>
+        <source>Sending failed: %1</source>
+        <translation>Odeslání selhalo: %1</translation>
+    </message>
+    <message>
+        <source>Attachments need Google Messages</source>
+        <translation>Přílohy jdou poslat jen přes Google Zprávy</translation>
+    </message>
+    <message>
         <source>Message sent</source>
         <translation>Zpráva odeslána</translation>
+    </message>
+    <message>
+        <source>Google Messages paired</source>
+        <translation>Google Zprávy spárovány</translation>
+    </message>
+    <message>
+        <source>Pairing failed: %1</source>
+        <translation>Párování selhalo: %1</translation>
     </message>
     <message>
         <source>Syncing contacts…</source>

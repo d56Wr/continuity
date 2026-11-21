@@ -110,6 +110,8 @@ Flickable {
             }
         }
 
+        GoogleMessagesCard { Layout.fillWidth: true }
+
         // ---------------------------------------------------------- settings
         Label {
             text: qsTr("Settings")

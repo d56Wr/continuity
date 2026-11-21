@@ -9,6 +9,8 @@ Item {
     readonly property bool out: model.outgoing
     readonly property var images: model.images
     readonly property real maxBubble: Math.min(520, width * 0.68)
+    // like iMessage: RCS (chat) bubbles are blue, plain SMS/MMS green
+    readonly property color outColor: phone.messageSource === "google" && !phone.threadIsRcs ? Theme.green : Theme.bubbleOut
 
     ColumnLayout {
         id: col
@@ -26,7 +28,17 @@ Item {
             font.weight: Font.DemiBold
         }
 
-        // images (thumbnails from the phone)
+        // sender name in group chats
+        Label {
+            Layout.leftMargin: 30
+            Layout.topMargin: 4
+            visible: !!model.showSender
+            text: model.sender || ""
+            color: Theme.secondary
+            font.pointSize: Theme.fontSize * 0.8
+        }
+
+        // images (thumbnails)
         Repeater {
             model: root.images
             delegate: Image {
@@ -35,10 +47,12 @@ Item {
                 Layout.rightMargin: 18
                 source: modelData
                 fillMode: Image.PreserveAspectFit
-                Layout.maximumWidth: 260
-                Layout.preferredWidth: Math.min(260, implicitWidth)
-                Layout.preferredHeight: Math.min(260, implicitWidth) * implicitHeight / Math.max(1, implicitWidth)
+                asynchronous: true
+                Layout.maximumWidth: 280
+                Layout.preferredWidth: Math.min(280, implicitWidth)
+                Layout.preferredHeight: Math.min(280, implicitWidth) * implicitHeight / Math.max(1, implicitWidth)
                 smooth: true
+                TapHandler { onTapped: Qt.openUrlExternally(parent.source) }
             }
         }
 
@@ -48,10 +62,11 @@ Item {
             Layout.alignment: root.out ? Qt.AlignRight : Qt.AlignLeft
             Layout.leftMargin: 18
             Layout.rightMargin: 18
+            Layout.topMargin: (model.reactions || "") !== "" ? 12 : 0
             implicitWidth: Math.min(root.maxBubble, body.implicitWidth + 26)
             implicitHeight: body.implicitHeight + 14
             radius: 17
-            color: model.status === "failed" ? Theme.red : root.out ? Theme.bubbleOut : Theme.bubbleIn
+            color: model.status === "failed" ? Theme.red : root.out ? root.outColor : Theme.bubbleIn
             opacity: model.status === "sending" ? 0.6 : 1
 
             TextEdit {
@@ -71,6 +86,21 @@ Item {
                 font.pointSize: Theme.fontSize * 1.02
             }
 
+            // reactions badge (tapback-style), on the top corner of the bubble
+            Rectangle {
+                visible: (model.reactions || "") !== ""
+                anchors.top: parent.top
+                anchors.topMargin: -12
+                x: root.out ? -width + 14 : parent.width - 14
+                height: 24
+                width: reactionText.implicitWidth + 14
+                radius: 12
+                color: Theme.dark ? "#3a3a3c" : "#ffffff"
+                border.color: Theme.windowBg
+                border.width: 2
+                Label { id: reactionText; anchors.centerIn: parent; text: model.reactions || "" }
+            }
+
             ToolTip.visible: hover.hovered
             ToolTip.delay: 700
             ToolTip.text: model.time
@@ -82,6 +112,11 @@ Item {
             Menu {
                 id: menu
                 MenuItem { text: qsTr("Copy"); onTriggered: phone.copyText(model.body) }
+                MenuSeparator { visible: phone.messageSource === "google" }
+                Repeater {
+                    model: phone.messageSource === "google" ? ["❤️", "👍", "😂", "😮", "😢", "👎"] : []
+                    MenuItem { text: modelData; onTriggered: phone.react(root.uid, modelData) }
+                }
             }
         }
 
@@ -89,10 +124,16 @@ Item {
             Layout.alignment: root.out ? Qt.AlignRight : Qt.AlignLeft
             Layout.leftMargin: 22
             Layout.rightMargin: 22
-            visible: model.groupEnd && (model.status !== "" || root.out)
-            text: model.status === "failed" ? qsTr("Not delivered") : model.status === "sending" ? qsTr("Sending…") : model.time
+            Layout.topMargin: (model.reactions || "") !== "" ? 2 : 0
+            visible: model.status === "failed" || model.status === "sending" || (model.receipt || "") !== ""
+                     || (model.groupEnd && root.out && phone.messageSource !== "google")
+            text: model.status === "failed" ? qsTr("Not delivered")
+                : model.status === "sending" ? qsTr("Sending…")
+                : (model.receipt || "") !== "" ? model.receipt : model.time
             color: model.status === "failed" ? Theme.red : Theme.tertiary
             font.pointSize: Theme.fontSize * 0.78
         }
     }
+
+    readonly property string uid: model.uid
 }

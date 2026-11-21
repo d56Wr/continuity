@@ -13,7 +13,7 @@ Item {
     function newMessage() { composing = true; chat.startCompose("") }
     function composeTo(number) {
         const tid = phone.threadForNumber(number)
-        if (tid >= 0) { composing = false; phone.openThread(tid); chat.focusComposer() }
+        if (tid !== "") { composing = false; phone.openThread(tid); chat.focusComposer() }
         else { composing = true; chat.startCompose(number) }
     }
 
@@ -49,6 +49,32 @@ Item {
                     }
                 }
 
+                // Google Messages is active in another browser/tab: offer to take it back
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 12
+                    Layout.rightMargin: 12
+                    Layout.bottomMargin: 8
+                    visible: phone.messageSource === "google" && phone.gmInactive
+                    implicitHeight: inactiveRow.implicitHeight + 12
+                    radius: 8
+                    color: Qt.rgba(Theme.orange.r, Theme.orange.g, Theme.orange.b, 0.15)
+                    RowLayout {
+                        id: inactiveRow
+                        anchors.fill: parent
+                        anchors.margins: 6
+                        anchors.leftMargin: 10
+                        Label {
+                            Layout.fillWidth: true
+                            wrapMode: Text.Wrap
+                            text: qsTr("Google Messages is open somewhere else.")
+                            color: Theme.text
+                            font.pointSize: Theme.fontSize * 0.88
+                        }
+                        Button { text: qsTr("Use here"); onClicked: phone.gmActivate() }
+                    }
+                }
+
                 // All / Unread filter (macOS-style segmented control)
                 RowLayout {
                     Layout.fillWidth: true
@@ -80,7 +106,7 @@ Item {
                     boundsBehavior: Flickable.StopAtBounds
                     ScrollBar.vertical: ScrollBar {}
                     // like Messages on macOS: open the newest conversation on start
-                    onCountChanged: if (count > 0 && phone.threadId < 0 && !root.composing && search.text === "")
+                    onCountChanged: if (count > 0 && phone.threadId === "" && !root.composing && search.text === "")
                                         phone.openThread(model.data(model.index(0, 0), 257))
                     delegate: ConversationDelegate {
                         width: list.width

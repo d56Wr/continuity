@@ -11,7 +11,7 @@ Rectangle {
     color: Theme.windowBg
 
     WebEngineProfile {
-        id: profile
+        id: gmProfile
         storageName: "google-messages"
         offTheRecord: false
         persistentCookiesPolicy: WebEngineProfile.ForcePersistentCookies
@@ -54,7 +54,7 @@ Rectangle {
             id: web
             Layout.fillWidth: true
             Layout.fillHeight: true
-            profile: profile
+            profile: gmProfile
             // the QR-code pairing page; once paired it redirects to the conversations
             url: "https://messages.google.com/web/authentication"
             backgroundColor: Theme.windowBg

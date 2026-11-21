@@ -6,6 +6,7 @@ CallBanner 1.0 CallBanner.qml
 CallsPage 1.0 CallsPage.qml
 ChatView 1.0 ChatView.qml
 ConversationDelegate 1.0 ConversationDelegate.qml
+GoogleMessagesCard 1.0 GoogleMessagesCard.qml
 IconButton 1.0 IconButton.qml
 Keypad 1.0 Keypad.qml
 MessageBubble 1.0 MessageBubble.qml
