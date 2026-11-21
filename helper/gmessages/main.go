@@ -15,6 +15,10 @@ package main
 import (
 	"bufio"
 	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/hmac"
+	"crypto/sha1"
 	"encoding/base64"
 	"encoding/json"
 	"errors"
@@ -131,11 +135,11 @@ type jMessage struct {
 func convJSON(c *gmproto.Conversation) jConversation {
 	j := jConversation{
 		ID: c.GetConversationID(), Name: c.GetName(), Unread: c.GetUnread(),
-		Timestamp: c.GetLastMessageTimestamp() / 1000,
-		Snippet:   c.GetLatestMessage().GetDisplayContent(),
+		Timestamp:   c.GetLastMessageTimestamp() / 1000,
+		Snippet:     c.GetLatestMessage().GetDisplayContent(),
 		SnippetFrom: c.GetLatestMessage().GetDisplayName(),
-		FromMe:    c.GetLatestMessage().GetFromMe() == 1,
-		Type:      "sms", Group: c.GetIsGroupChat(), Pinned: c.GetPinned(), ReadOnly: c.GetReadOnly(),
+		FromMe:      c.GetLatestMessage().GetFromMe() == 1,
+		Type:        "sms", Group: c.GetIsGroupChat(), Pinned: c.GetPinned(), ReadOnly: c.GetReadOnly(),
 		Archived: c.GetStatus() == gmproto.ConversationStatus_ARCHIVED,
 		Color:    c.GetAvatarHexColor(), LatestID: c.GetLatestMessageID(),
 	}
@@ -329,22 +333,25 @@ func handleEvent(raw any) {
 // ------------------------------------------------------------------ commands
 
 type command struct {
-	ID           int64           `json:"id"`
-	Cmd          string          `json:"cmd"`
-	Conversation string          `json:"conversation"`
-	Message      string          `json:"message"`
-	Text         string          `json:"text"`
-	Count        int64           `json:"count"`
-	Cursor       *gmproto.Cursor `json:"cursor"`
-	MediaID      string          `json:"mediaId"`
-	Key          string          `json:"key"`
-	Numbers      []string        `json:"numbers"`
-	Emoji        string          `json:"emoji"`
-	Remove       bool            `json:"remove"`
-	Typing       bool            `json:"typing"`
-	File         string          `json:"file"`
-	Mime         string          `json:"mime"`
-	ReplyTo      string          `json:"replyTo"`
+	ID           int64             `json:"id"`
+	Cmd          string            `json:"cmd"`
+	Conversation string            `json:"conversation"`
+	Message      string            `json:"message"`
+	Text         string            `json:"text"`
+	Count        int64             `json:"count"`
+	Cursor       *gmproto.Cursor   `json:"cursor"`
+	MediaID      string            `json:"mediaId"`
+	Key          string            `json:"key"`
+	Numbers      []string          `json:"numbers"`
+	Emoji        string            `json:"emoji"`
+	Remove       bool              `json:"remove"`
+	Typing       bool              `json:"typing"`
+	Cookies      map[string]string `json:"cookies"`
+	Encrypted    []encCookie       `json:"encrypted"`
+	DBVersion    int               `json:"dbVersion"`
+	File         string            `json:"file"`
+	Mime         string            `json:"mime"`
+	ReplyTo      string            `json:"replyTo"`
 }
 
 func newClient(a *libgm.AuthData) *libgm.Client {
@@ -423,6 +430,103 @@ func startQR() (any, error) {
 	return qrPayload(qr), nil
 }
 
+// encCookie is a row of a Chromium cookie database started with --password-store=basic.
+type encCookie struct {
+	Name  string `json:"name"`
+	Host  string `json:"host"`
+	Value string `json:"value"` // plain value (rare) …
+	Enc   []byte `json:"enc"`   // … or encrypted_value (base64 in JSON)
+}
+
+// decryptChromiumCookies decrypts "v10" cookies of a Chromium profile that uses the basic
+// (non-keyring) password store: AES-128-CBC, key = PBKDF2-SHA1("peanuts", "saltysalt", 1 iteration).
+// Database schema version >= 24 prefixes the plaintext with SHA-256(host).
+func decryptChromiumCookies(rows []encCookie, dbVersion int) map[string]string {
+	mac := hmac.New(sha1.New, []byte("peanuts"))
+	mac.Write([]byte("saltysalt\x00\x00\x00\x01"))
+	key := mac.Sum(nil)[:16]
+	block, _ := aes.NewCipher(key)
+	iv := []byte("                ")
+	want := map[string]string{"OSID": "messages.google.com", "SID": ".google.com", "HSID": ".google.com",
+		"SSID": ".google.com", "APISID": ".google.com", "SAPISID": ".google.com", "__Secure-1PSIDTS": ".google.com"}
+	out := map[string]string{}
+	for _, r := range rows {
+		dom, ok := want[r.Name]
+		if !ok || strings.TrimPrefix(r.Host, ".") != strings.TrimPrefix(dom, ".") {
+			continue
+		}
+		if r.Value != "" {
+			out[r.Name] = r.Value
+			continue
+		}
+		if len(r.Enc) < 3+aes.BlockSize || string(r.Enc[:3]) != "v10" {
+			continue
+		}
+		data := append([]byte(nil), r.Enc[3:]...)
+		if len(data)%aes.BlockSize != 0 {
+			continue
+		}
+		cipher.NewCBCDecrypter(block, iv).CryptBlocks(data, data)
+		pad := int(data[len(data)-1])
+		if pad == 0 || pad > aes.BlockSize || pad > len(data) {
+			continue
+		}
+		data = data[:len(data)-pad]
+		if dbVersion >= 24 && len(data) >= 32 {
+			data = data[32:]
+		}
+		out[r.Name] = string(data)
+	}
+	return out
+}
+
+func isPaired(a *libgm.AuthData) bool {
+	return a != nil && (a.Browser != nil || (a.Mobile != nil && len(a.TachyonAuthToken) > 0))
+}
+
+// startGoogle pairs through a Google account: the cookies come from a browser session
+// signed in to messages.google.com; the user then taps the matching emoji on the phone.
+func startGoogle(cookies map[string]string) (any, error) {
+	for _, k := range []string{"SID", "HSID", "SSID", "APISID", "SAPISID", "OSID"} {
+		if cookies[k] == "" {
+			return nil, fmt.Errorf("missing cookie %s", k)
+		}
+	}
+	a := libgm.NewAuthData()
+	a.SetCookies(cookies)
+	c := libgm.NewClient(a, nil, log, exhttp.SensibleClientSettings)
+	c.SetEventHandler(handleEvent)
+	if err := c.FetchConfig(bgCtx); err != nil {
+		return nil, fmt.Errorf("google rejected the session: %w", err)
+	}
+	go func() {
+		err := c.DoGaiaPairing(bgCtx, func(emoji string) {
+			event("pair_emoji", map[string]any{"emoji": emoji, "svg": libgm.GetEmojiSVG(emoji)})
+		})
+		if err != nil {
+			msg := err.Error()
+			switch {
+			case errors.Is(err, libgm.ErrIncorrectEmoji):
+				msg = "wrong_emoji"
+			case errors.Is(err, libgm.ErrNoDevicesFound), errors.Is(err, libgm.ErrPhoneNotFound):
+				msg = "no_phone"
+			case errors.Is(err, libgm.ErrPhoneInactive):
+				msg = "phone_inactive"
+			}
+			c.Disconnect()
+			event("pair_failed", map[string]any{"reason": msg})
+			return
+		}
+		mu.Lock()
+		auth = a
+		cli = c // DoGaiaPairing reconnects this client by itself
+		mu.Unlock()
+		saveSession()
+		event("paired", map[string]any{"google": true})
+	}()
+	return map[string]any{"started": true}, nil
+}
+
 // qrPayload returns the pairing URL plus a PNG rendering of it for the UI.
 func qrPayload(url string) map[string]any {
 	res := map[string]any{"url": url}
@@ -465,11 +569,18 @@ func run(cmd command) (any, error) {
 	if cmd.Cmd == "status" {
 		mu.Lock()
 		defer mu.Unlock()
-		return map[string]any{"paired": auth != nil && auth.Browser != nil,
+		return map[string]any{"paired": isPaired(auth),
 			"connected": cli != nil && cli.IsConnected()}, nil
 	}
 	if cmd.Cmd == "pair_qr" {
 		return startQR()
+	}
+	if cmd.Cmd == "pair_google" {
+		cookies := cmd.Cookies
+		if len(cmd.Encrypted) > 0 {
+			cookies = decryptChromiumCookies(cmd.Encrypted, cmd.DBVersion)
+		}
+		return startGoogle(cookies)
 	}
 	if cmd.Cmd == "connect" {
 		return nil, connect()
@@ -656,7 +767,7 @@ func main() {
 	defer cancel()
 
 	auth = loadSession()
-	if auth != nil && auth.Browser != nil {
+	if isPaired(auth) {
 		event("starting", map[string]any{"paired": true})
 		go func() {
 			if err := connect(); err != nil {

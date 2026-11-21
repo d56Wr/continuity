@@ -15,6 +15,7 @@ from .core.telephony import IN_PROGRESS, RINGING, AudioRoute, Telephony
 from .models import DictListModel, FilterHelper
 from . import desktop_notify, settings
 from .gmessages import GMessages
+from .google_login import GoogleLogin
 
 log = logging.getLogger(__name__)
 
@@ -74,6 +75,12 @@ class Phone(QObject):
         self._was_gm_mode = False
         self.gm.event.connect(self._on_gm_event)
         self.gm.stateChanged.connect(self._on_gm_state)
+        self._gm_emoji = ""
+        self._gm_emoji_svg = ""
+        self.glogin = GoogleLogin(self)
+        self.glogin.cookiesReady.connect(self._on_google_cookies)
+        self.glogin.failed.connect(self._on_google_login_failed)
+        self.glogin.stateChanged.connect(self.gmChanged)
         self.gm.start()
 
         self.kc = KDEConnect(self._on_kc)
@@ -583,12 +590,28 @@ class Phone(QObject):
                 self._thread_dirty.start()
                 if not data.get("fromMe") and not data.get("old") and self._window_active():
                     self.gm.request("mark_read", None, conversation=cid, message=data["id"])
+        elif name == "pair_emoji":
+            self._gm_emoji = data.get("emoji", "")
+            self._gm_emoji_svg = data.get("svg", "")
+            self.gmChanged.emit()
+            self.showWindowRequested.emit()
+        elif name == "pair_failed":
+            self._gm_emoji = self._gm_emoji_svg = ""
+            reason = data.get("reason", "")
+            self.toast.emit({
+                "wrong_emoji": self.tr("Wrong emoji chosen on the phone, try again"),
+                "no_phone": self.tr("No phone with Google Messages found on this Google account"),
+                "phone_inactive": self.tr("Open Google Messages on the phone and try again"),
+            }.get(reason, self.tr("Pairing failed: %1").replace("%1", reason)))
+            self.gmChanged.emit()
         elif name in ("qr", "paired", "qr_expired", "logged_out", "inactive", "phone", "error", "recovered", "starting"):
             if name == "qr":
                 self._gm_qr = QUrl.fromLocalFile(data["png"]).toString() + f"?{time.time()}" if data.get("png") else ""
             elif name in ("paired", "qr_expired", "logged_out"):
                 self._gm_qr = ""
             if name == "paired":
+                self._gm_emoji = self._gm_emoji_svg = ""
+                self.glogin.cleanup()
                 self.toast.emit(self.tr("Google Messages paired"))
             if name == "inactive":
                 self._gm_inactive = True
@@ -660,6 +683,49 @@ class Phone(QObject):
     @Slot()
     def gmCancelPair(self) -> None:
         self._gm_qr = ""
+        self._gm_emoji = self._gm_emoji_svg = ""
+        self.glogin.cancel()
+        self.gmChanged.emit()
+
+    @Property(bool, notify=gmChanged)
+    def gmGoogleLoginAvailable(self):
+        return self.glogin.available
+
+    @Property(bool, notify=gmChanged)
+    def gmSigningIn(self):
+        return self.glogin.active
+
+    @Property(str, notify=gmChanged)
+    def gmEmoji(self):
+        return self._gm_emoji
+
+    @Property(str, notify=gmChanged)
+    def gmEmojiSvg(self):
+        return self._gm_emoji_svg
+
+    @Slot()
+    def gmPairGoogle(self) -> None:
+        self.gm.start()
+        self._gm_qr = ""
+        self.glogin.start()
+        self.gmChanged.emit()
+
+    def _on_google_cookies(self, rows: list, version: int) -> None:
+        self.showWindowRequested.emit()
+        self.toast.emit(self.tr("Signed in, contacting your phone…"))
+
+        def done(res, err):
+            if err:
+                self.toast.emit(self.tr("Pairing failed: %1").replace("%1", err))
+                self.gmChanged.emit()
+        self.gm.request("pair_google", done, encrypted=rows, dbVersion=version)
+        self.gmChanged.emit()
+
+    def _on_google_login_failed(self, reason: str) -> None:
+        if reason == "no_browser":
+            self.toast.emit(self.tr("Install Microsoft Edge, Chrome or Chromium to sign in"))
+        elif reason == "closed":
+            self.toast.emit(self.tr("Sign-in window closed before signing in"))
         self.gmChanged.emit()
 
     @Slot()

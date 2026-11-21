@@ -116,6 +116,14 @@
         <translation>Google Zprávy · SMS a RCS</translation>
     </message>
     <message>
+        <source>On your phone, tap the emoji shown below.</source>
+        <translation>V telefonu klepni na emoji zobrazené níže.</translation>
+    </message>
+    <message>
+        <source>Sign in to your Google account in the browser window that opened. It closes by itself afterwards.</source>
+        <translation>Přihlas se ke svému účtu Google v otevřeném okně prohlížeče. Pak se samo zavře.</translation>
+    </message>
+    <message>
         <source>Waiting for the QR code to be scanned…</source>
         <translation>Čekám na naskenování QR kódu…</translation>
     </message>
@@ -136,8 +144,12 @@
         <translation>Připojuji…</translation>
     </message>
     <message>
-        <source>Pair with QR code</source>
-        <translation>Spárovat QR kódem</translation>
+        <source>Sign in with Google</source>
+        <translation>Přihlásit účtem Google</translation>
+    </message>
+    <message>
+        <source>QR code</source>
+        <translation>QR kód</translation>
     </message>
     <message>
         <source>Use here</source>
@@ -150,6 +162,10 @@
     <message>
         <source>Cancel</source>
         <translation>Zrušit</translation>
+    </message>
+    <message>
+        <source>Google Messages on your phone now shows several emoji. Tap the same one as here to finish pairing.</source>
+        <translation>Google Zprávy v telefonu teď ukazují několik emoji. Klepni na stejné jako tady a párování se dokončí.</translation>
     </message>
     <message>
         <source>1. On your phone open Google Messages.</source>
@@ -359,6 +375,30 @@
     <message>
         <source>Pairing failed: %1</source>
         <translation>Párování selhalo: %1</translation>
+    </message>
+    <message>
+        <source>Wrong emoji chosen on the phone, try again</source>
+        <translation>V telefonu bylo vybráno jiné emoji, zkus to znovu</translation>
+    </message>
+    <message>
+        <source>No phone with Google Messages found on this Google account</source>
+        <translation>K tomuto účtu Google není připojený telefon s Google Zprávami</translation>
+    </message>
+    <message>
+        <source>Open Google Messages on the phone and try again</source>
+        <translation>Otevři v telefonu Google Zprávy a zkus to znovu</translation>
+    </message>
+    <message>
+        <source>Signed in, contacting your phone…</source>
+        <translation>Přihlášeno, kontaktuji telefon…</translation>
+    </message>
+    <message>
+        <source>Install Microsoft Edge, Chrome or Chromium to sign in</source>
+        <translation>K přihlášení je potřeba Microsoft Edge, Chrome nebo Chromium</translation>
+    </message>
+    <message>
+        <source>Sign-in window closed before signing in</source>
+        <translation>Okno přihlášení bylo zavřeno dřív, než ses přihlásil</translation>
     </message>
     <message>
         <source>Syncing contacts…</source>
