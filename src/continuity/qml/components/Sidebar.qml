@@ -69,6 +69,11 @@ Rectangle {
             active: root.current === 0; onClicked: root.selected(0)
         }
         NavItem {
+            visible: webEngineAvailable
+            iconName: "dialog-messages"; text: qsTr("Google Messages")
+            active: root.current === 4; onClicked: root.selected(4)
+        }
+        NavItem {
             iconName: "call-start-symbolic"; text: qsTr("Calls")
             active: root.current === 1; onClicked: root.selected(1)
             badge: phone.callState === "ringing" ? 1 : 0

@@ -59,6 +59,12 @@ def main(argv: list[str] | None = None) -> int:
 
     os.environ.setdefault("QT_QUICK_CONTROLS_STYLE", "org.kde.desktop")
     QApplication.setDesktopFileName(APP_ID)
+    try:  # optional: embedded Google Messages for Web (RCS)
+        from PySide6.QtWebEngineQuick import QtWebEngineQuick
+        QtWebEngineQuick.initialize()
+        webengine = True
+    except ImportError:
+        webengine = False
     app = QApplication(sys.argv[:1])
     app.setApplicationName("Continuity")
     app.setOrganizationName("continuity")
@@ -87,6 +93,8 @@ def main(argv: list[str] | None = None) -> int:
     engine.warnings.connect(lambda ws: [qml_log.warning(w.toString()) for w in ws])
     engine.rootContext().setContextProperty("phone", phone)
     engine.rootContext().setContextProperty("appVersion", __version__)
+    engine.rootContext().setContextProperty("webEngineAvailable", webengine)
+    engine.setUiLanguage(lang if lang else QLocale.system().name())
     engine.load(QUrl.fromLocalFile(str(HERE / "qml" / "Main.qml")))
     if not engine.rootObjects():
         return 1

@@ -53,6 +53,9 @@ class Phone(QObject):
         self._contacts = DictListModel(["name", "number", "avatar", "initials", "color"], parent=self)
         self._contact_filter = FilterHelper(self._contacts, lambda r, q: q in r["name"].casefold()
                                             or number_key(q) and number_key(q) in number_key(r["number"]))
+        self._unread_only = False
+        self._conv_filter.extra = lambda r: r["unread"] or r["threadId"] == self._thread_id \
+            if self._unread_only else True
         self._book: ContactBook | None = None
         self._thread_id = -1
         self._unread_seen: dict[int, int] = settings.get("seen", {}) or {}
@@ -172,21 +175,43 @@ class Phone(QObject):
             return self._locale.dayName(dt.isoweekday(), QLocale.FormatType.ShortFormat)
         return self._locale.toString(qdt.date(), QLocale.FormatType.ShortFormat)
 
+    def _detect_own_number(self) -> None:
+        """KDE Connect lists the phone's own number among the addresses of MMS/RCS-fallback
+        threads. Treat a number that shows up in most multi-address threads as our own."""
+        own = settings.get("ownNumber", "")
+        if own:
+            self._own_keys = {number_key(own)}
+            return
+        groups = [m for m in self.dev.threads.values() if len(m.addresses) > 1] if self.dev else []
+        counts: dict[str, int] = {}
+        for m in groups:
+            for k in {number_key(a) for a in m.addresses}:
+                counts[k] = counts.get(k, 0) + 1
+        self._own_keys = {k for k, c in counts.items() if c >= 3 and c >= 0.5 * len(groups)}
+
+    def _others(self, m: Message) -> list[str]:
+        """The thread's participants without our own number (falls back to all)."""
+        own = getattr(self, "_own_keys", set())
+        others = [a for a in m.addresses if number_key(a) not in own]
+        return others or m.addresses
+
     def _rebuild_threads(self) -> None:
         dev = self.dev
         rows = []
         if dev:
+            self._detect_own_number()
             for m in sorted(dev.threads.values(), key=lambda m: m.date, reverse=True):
-                names = [self._name(a) for a in m.addresses] or ["?"]
+                addrs = self._others(m)
+                names = [self._name(a) for a in addrs] or ["?"]
                 title = ", ".join(names)
-                first = m.addresses[0] if m.addresses else ""
+                first = addrs[0] if addrs else ""
                 unread = (not m.read and not m.outgoing and self._unread_seen.get(m.thread_id, 0) < m.date)
                 rows.append({
                     "threadId": m.thread_id, "title": title,
                     "snippet": (self.tr("You: ") if m.outgoing else "") + (m.body or self.tr("Attachment")),
                     "time": self._fmt_list_time(m.date), "date": m.date, "unread": unread,
-                    "avatar": self._photo(first) if len(m.addresses) == 1 else "",
-                    "initials": _initials(title) if len(m.addresses) == 1 else str(len(m.addresses)),
+                    "avatar": self._photo(first) if len(addrs) == 1 else "",
+                    "initials": _initials(title) if len(addrs) == 1 else str(len(addrs)),
                     "color": _avatar_color(title), "fromMe": m.outgoing,
                     "numbers": " ".join(m.addresses),
                 })
@@ -197,6 +222,28 @@ class Phone(QObject):
     def filterConversations(self, q: str) -> None:
         self._conv_filter.set_query(q)
 
+    unreadOnlyChanged = Signal()
+
+    @Property(bool, notify=unreadOnlyChanged)
+    def unreadOnly(self):
+        return self._unread_only
+
+    @unreadOnly.setter
+    def unreadOnly(self, on: bool):
+        if on != self._unread_only:
+            self._unread_only = on
+            self._conv_filter.apply()
+            self.unreadOnlyChanged.emit()
+
+    @Slot()
+    def markAllRead(self) -> None:
+        if not self.dev:
+            return
+        for tid, m in self.dev.threads.items():
+            self._unread_seen[tid] = max(self._unread_seen.get(tid, 0), m.date)
+        settings.set("seen", {str(k): v for k, v in self._unread_seen.items()})
+        self._rebuild_threads()
+
     @Property(int, notify=threadChanged)
     def threadId(self):
         return self._thread_id
@@ -204,12 +251,13 @@ class Phone(QObject):
     @Property(str, notify=threadChanged)
     def threadTitle(self):
         m = self.dev.threads.get(self._thread_id) if self.dev else None
-        return ", ".join(self._name(a) for a in m.addresses) if m else ""
+        return ", ".join(self._name(a) for a in self._others(m)) if m else ""
 
     @Property(str, notify=threadChanged)
     def threadNumber(self):
         m = self.dev.threads.get(self._thread_id) if self.dev else None
-        return m.addresses[0] if m and len(m.addresses) == 1 else ""
+        others = self._others(m) if m else []
+        return others[0] if len(others) == 1 else ""
 
     @Property(str, notify=threadChanged)
     def threadAvatar(self):
@@ -241,8 +289,8 @@ class Phone(QObject):
             self.dev.load_thread(self._thread_id, 50)
 
     def _rebuild_thread(self) -> None:
-        msgs: list[Message] = sorted((self.dev.messages.get(self._thread_id, {}) if self.dev else {}).values(),
-                                     key=lambda m: m.date)
+        msgs: list[Message] = sorted((m for m in (self.dev.messages.get(self._thread_id, {}) if self.dev else {}).values()
+                                      if m.body or m.attachments), key=lambda m: m.date)
         rows = []
         prev: Message | None = None
         for i, m in enumerate(msgs):
@@ -286,7 +334,8 @@ class Phone(QObject):
             return -1
         k = number_key(number)
         for m in self.dev.threads.values():
-            if len(m.addresses) == 1 and number_key(m.addresses[0]) == k:
+            others = self._others(m)
+            if len(others) == 1 and number_key(others[0]) == k:
                 return m.thread_id
         return -1
 

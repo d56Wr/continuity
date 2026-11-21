@@ -49,6 +49,27 @@ Item {
                     }
                 }
 
+                // All / Unread filter (macOS-style segmented control)
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 12
+                    Layout.rightMargin: 12
+                    Layout.bottomMargin: 8
+                    spacing: 8
+                    Segmented {
+                        Layout.fillWidth: true
+                        model: [qsTr("All"), phone.unreadCount > 0 ? qsTr("Unread (%1)").arg(phone.unreadCount) : qsTr("Unread")]
+                        currentIndex: phone.unreadOnly ? 1 : 0
+                        onActivated: (i) => phone.unreadOnly = (i === 1)
+                    }
+                    IconButton {
+                        iconName: "mail-mark-read-symbolic"
+                        tip: qsTr("Mark all as read")
+                        enabled: phone.unreadCount > 0
+                        onClicked: phone.markAllRead()
+                    }
+                }
+
                 ListView {
                     id: list
                     Layout.fillWidth: true
@@ -69,7 +90,8 @@ Item {
                     Label {
                         anchors.centerIn: parent
                         visible: list.count === 0
-                        text: search.text ? qsTr("No results") : qsTr("No conversations yet")
+                        text: search.text ? qsTr("No results")
+                            : phone.unreadOnly ? qsTr("No unread messages") : qsTr("No conversations yet")
                         color: Theme.secondary
                     }
                 }

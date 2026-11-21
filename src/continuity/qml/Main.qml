@@ -25,6 +25,7 @@ ApplicationWindow {
     Shortcut { sequences: ["Ctrl+2"]; onActivated: win.page = 1 }
     Shortcut { sequences: ["Ctrl+3"]; onActivated: win.page = 2 }
     Shortcut { sequences: ["Ctrl+4"]; onActivated: win.page = 3 }
+    Shortcut { sequences: ["Ctrl+5"]; onActivated: if (webEngineAvailable) win.page = 4 }
 
     RowLayout {
         anchors.fill: parent
@@ -48,12 +49,21 @@ ApplicationWindow {
             CallsPage { id: calls; onMessageNumber: (n) => { win.page = 0; messages.composeTo(n) } }
             NotificationsPage {}
             PhonePage {}
+            // 4: Google Messages for Web (RCS), loaded the first time it is opened
+            Loader {
+                id: googleMessages
+                property bool visited: false
+                active: webEngineAvailable && visited
+                source: "components/GoogleMessagesPage.qml"
+                Connections { target: win; function onPageChanged() { if (win.page === 4) googleMessages.visited = true } }
+                Component.onCompleted: if (win.page === 4) visited = true
+            }
         }
     }
 
     NotConnectedOverlay {
         anchors.fill: parent
-        visible: !phone.connected
+        visible: !phone.connected && win.page !== 4
     }
 
     CallBanner {

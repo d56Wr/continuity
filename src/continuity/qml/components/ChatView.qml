@@ -63,7 +63,7 @@ Rectangle {
                     iconName: "call-start-symbolic"
                     tip: qsTr("Call")
                     tint: Theme.accent
-                    visible: phone.threadNumber !== ""
+                    visible: phone.threadNumber !== "" && phone.threadNumber.indexOf("@") < 0
                     enabled: phone.callsAvailable
                     onClicked: root.callNumber(phone.threadNumber)
                 }

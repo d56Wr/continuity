@@ -102,6 +102,25 @@
     </message>
 </context>
 <context>
+    <name>GoogleMessagesPage</name>
+    <message>
+        <source>Google Messages</source>
+        <translation>Google Zprávy</translation>
+    </message>
+    <message>
+        <source>Back</source>
+        <translation>Zpět</translation>
+    </message>
+    <message>
+        <source>Reload</source>
+        <translation>Obnovit</translation>
+    </message>
+    <message>
+        <source>Open in browser</source>
+        <translation>Otevřít v prohlížeči</translation>
+    </message>
+</context>
+<context>
     <name>MessageBubble</name>
     <message>
         <source>Attachment</source>
@@ -127,12 +146,32 @@
         <translation>Nová zpráva</translation>
     </message>
     <message>
+        <source>All</source>
+        <translation>Vše</translation>
+    </message>
+    <message>
+        <source>Unread (%1)</source>
+        <translation>Nepřečtené (%1)</translation>
+    </message>
+    <message>
+        <source>Unread</source>
+        <translation>Nepřečtené</translation>
+    </message>
+    <message>
+        <source>Mark all as read</source>
+        <translation>Označit vše jako přečtené</translation>
+    </message>
+    <message>
         <source>No results</source>
         <translation>Nic nenalezeno</translation>
     </message>
     <message>
         <source>No conversations yet</source>
         <translation>Zatím žádné konverzace</translation>
+    </message>
+    <message>
+        <source>No unread messages</source>
+        <translation>Žádné nepřečtené zprávy</translation>
     </message>
 </context>
 <context>
@@ -367,7 +406,7 @@
     </message>
 </context>
 <context>
-    <name>SearchField</name>
+    <name>SearchBox</name>
     <message>
         <source>Search</source>
         <translation>Hledat</translation>
@@ -390,6 +429,10 @@
     <message>
         <source>Messages</source>
         <translation>Zprávy</translation>
+    </message>
+    <message>
+        <source>Google Messages</source>
+        <translation>Google Zprávy</translation>
     </message>
     <message>
         <source>Calls</source>

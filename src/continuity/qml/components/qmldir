@@ -17,5 +17,6 @@ NotificationCard 1.0 NotificationCard.qml
 NotificationsPage 1.0 NotificationsPage.qml
 PhonePage 1.0 PhonePage.qml
 SearchBox 1.0 SearchBox.qml
+Segmented 1.0 Segmented.qml
 Sidebar 1.0 Sidebar.qml
 Toast 1.0 Toast.qml
