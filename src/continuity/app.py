@@ -16,7 +16,7 @@ from PySide6.QtQml import QQmlApplicationEngine
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
-from . import __version__, settings
+from . import __version__, launcher_badge, settings
 from .bridge import Phone
 
 HERE = Path(__file__).resolve().parent
@@ -101,6 +101,12 @@ def main(argv: list[str] | None = None) -> int:
         window.requestActivate()
 
     phone.showWindowRequested.connect(show_window)
+
+    def update_badge():
+        launcher_badge.set_count(APP_ID, phone.unreadCount)
+
+    phone.threadChanged.connect(update_badge)
+    update_badge()
 
     server = QLocalServer()
     QLocalServer.removeServer(SOCKET)
