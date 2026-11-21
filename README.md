@@ -12,7 +12,7 @@ Android phone, behind one clean, macOS-style interface:
 
 | | |
 |---|---|
-| 💬 **Messages** | Full SMS/MMS conversation history, replies, new messages, contact names and photos, image thumbnails |
+| 💬 **Messages** | **SMS and RCS** (iPhone chats included) via Google Messages: history, replies, new messages, photos and files, reactions, Sent / Delivered / Read, green SMS vs blue RCS bubbles, local *mark as unread*. Falls back to SMS/MMS from KDE Connect when Google Messages is not paired |
 | 📞 **Calls** | Incoming-call banner with **Answer / Decline**, in-call HUD (timer, mute, hang up), dial pad and contacts. Call audio runs through the PC's microphone and speakers/headphones |
 | 🔔 **Notifications** | Everything that shows up on the phone, with **dismiss on the phone**, *Clear all* and quick replies |
 | 📱 **Phone** | Battery, signal, *Find my phone*, send files (drag & drop, "AirDrop"), browse phone storage, send clipboard |
@@ -20,10 +20,15 @@ Android phone, behind one clean, macOS-style interface:
 
 ## How it works
 
-Continuity does not reimplement any phone protocol. It is a front end over two mature pieces:
+Continuity is a front end over three pieces:
 
 - **[KDE Connect](https://kdeconnect.kde.org/)** (over Wi-Fi) — messages, contacts, notifications,
   battery, file transfer. Continuity talks to the running `kdeconnectd` over D-Bus.
+- **Google Messages for Web** protocol (SMS + RCS) through a small Go helper built on
+  [libgm](https://github.com/mautrix/gmessages) from mautrix-gmessages (`helper/gmessages`,
+  AGPL-3.0). Pairing uses your Google account: Continuity opens your Chromium-based browser
+  with a separate throw-away profile, you sign in, then tap the matching emoji on the phone.
+  This is an **unofficial** client; Google may change the protocol at any time.
 - **Bluetooth Hands-Free (HFP)** via **PipeWire** — the PC acts like a car kit for the phone.
   PipeWire ≥ 1.2 exposes calls on D-Bus (`org.pipewire.Telephony`); Continuity answers, declines
   and dials through it and routes the call audio with `pw-loopback`.
@@ -42,6 +47,7 @@ Continuity does not reimplement any phone protocol. It is a front end over two m
 - Linux with a session D-Bus and a system tray (tested on KDE Plasma 6)
 - Python ≥ 3.11, **PySide6** ≥ 6.6, PyGObject, Kirigami (QML module)
 - **KDE Connect** on the computer and the **KDE Connect** app on the phone (Play Store / F-Droid)
+- For RCS: Go ≥ 1.22 to build the helper, and Microsoft Edge / Chrome / Chromium for the one-time sign-in
 - For calls: Bluetooth adapter, **PipeWire ≥ 1.2** with WirePlumber, `pw-loopback`, `pactl`
 
 Arch / CachyOS:
@@ -89,7 +95,8 @@ Strings live in `po/*.ts` (Qt Linguist). Add a language with `scripts/update-tra
 ## Limitations
 
 - Calls need Bluetooth HFP; KDE Connect alone can only show and silence them.
-- RCS chats are not visible to KDE Connect, only SMS/MMS.
+- RCS needs Google Messages as the phone's SMS app and the (unofficial) Google Messages pairing.
+- "Mark as unread" is local to Continuity: the Google Messages protocol has no such action.
 - Call history and voicemail are not available.
 
 ## License

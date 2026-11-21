@@ -57,6 +57,7 @@ class Phone(QObject):
         self._contact_filter = FilterHelper(self._contacts, lambda r, q: q in r["name"].casefold()
                                             or number_key(q) and number_key(q) in number_key(r["number"]))
         self._unread_only = False
+        self._marked_unread: set[str] = set(settings.get("markedUnread", []) or [])
         self._conv_filter.extra = lambda r: r["unread"] or r["threadId"] == self._thread_id \
             if self._unread_only else True
         self._book: ContactBook | None = None
@@ -239,8 +240,19 @@ class Phone(QObject):
 
     # ---------------------------------------------------------------- Google Messages helpers
     def _gm_others(self, c: dict) -> list[dict]:
-        others = [p for p in c.get("participants") or [] if not p.get("isMe")]
-        return others or (c.get("participants") or [])
+        """Participants other than us, deduplicated (Google lists a contact once per
+        identifier, e.g. phone number and RCS address); 1:1 chats have exactly one."""
+        own = getattr(self, "_own_keys", set())
+        seen, others = set(), []
+        for p in c.get("participants") or []:
+            key = number_key(p.get("number", "")) or p.get("id")
+            if p.get("isMe") or key in own or key in seen:
+                continue
+            seen.add(key)
+            others.append(p)
+        if not others:
+            others = list(c.get("participants") or [])
+        return others if c.get("group") else others[:1]
 
     def _gm_conv(self, tid: str) -> dict | None:
         return self._gm_convs.get(tid[1:]) if tid.startswith("g") else None
@@ -263,7 +275,8 @@ class Phone(QObject):
                 rows.append({
                     "threadId": "g" + c["id"], "title": title, "snippet": snippet,
                     "time": self._fmt_list_time(c.get("timestamp", 0)), "date": c.get("timestamp", 0),
-                    "unread": bool(c.get("unread")) and "g" + c["id"] != self._thread_id,
+                    "unread": ("g" + c["id"]) in self._marked_unread
+                              or (bool(c.get("unread")) and "g" + c["id"] != self._thread_id),
                     "avatar": self._photo(first) if first else "",
                     "initials": _initials(title) if len(others) == 1 else str(len(others)),
                     "color": c.get("color") or _avatar_color(title), "fromMe": bool(c.get("fromMe")),
@@ -279,7 +292,8 @@ class Phone(QObject):
                 title = ", ".join(names)
                 first = addrs[0] if addrs else ""
                 tid = f"k{m.thread_id}"
-                unread = (not m.read and not m.outgoing and self._unread_seen.get(tid, 0) < m.date)
+                unread = tid in self._marked_unread or \
+                    (not m.read and not m.outgoing and self._unread_seen.get(tid, 0) < m.date)
                 rows.append({
                     "threadId": tid, "title": title,
                     "snippet": (self.tr("You: ") if m.outgoing else "") + (m.body or self.tr("Attachment")),
@@ -311,6 +325,8 @@ class Phone(QObject):
 
     @Slot()
     def markAllRead(self) -> None:
+        self._marked_unread.clear()
+        settings.set("markedUnread", [])
         if self._gm_mode:
             for c in self._gm_convs.values():
                 if c.get("unread") and c.get("latestId"):
@@ -320,6 +336,27 @@ class Phone(QObject):
             for tid, m in self.dev.threads.items():
                 key = f"k{tid}"
                 self._unread_seen[key] = max(self._unread_seen.get(key, 0), m.date)
+            settings.set("seen", self._unread_seen)
+        self._rebuild_threads()
+
+    @Slot(str)
+    def markUnread(self, tid: str) -> None:
+        """Local 'mark as unread' (the Google Messages protocol has no such action)."""
+        self._marked_unread.add(tid)
+        settings.set("markedUnread", sorted(self._marked_unread))
+        self._rebuild_threads()
+
+    @Slot(str)
+    def markRead(self, tid: str) -> None:
+        self._marked_unread.discard(tid)
+        settings.set("markedUnread", sorted(self._marked_unread))
+        c = self._gm_conv(tid)
+        if c is not None and c.get("unread") and c.get("latestId"):
+            self.gm.request("mark_read", None, conversation=c["id"], message=c["latestId"])
+            c["unread"] = False
+        m = self._kc_thread(tid)
+        if m is not None:
+            self._unread_seen[tid] = m.date
             settings.set("seen", self._unread_seen)
         self._rebuild_threads()
 
@@ -361,6 +398,9 @@ class Phone(QObject):
 
     @Slot(str)
     def openThread(self, tid: str) -> None:
+        if tid in self._marked_unread:
+            self._marked_unread.discard(tid)
+            settings.set("markedUnread", sorted(self._marked_unread))
         self._thread_id = tid
         c = self._gm_conv(tid)
         if c is not None:
@@ -570,10 +610,13 @@ class Phone(QObject):
         self.gm.request("download", done, mediaId=media_id, key=key)
 
     def _on_gm_event(self, name: str, data) -> None:
-        if name == "ready":
-            for c in data.get("conversations") or []:
+        if name in ("ready", "conversations"):
+            for c in (data or {}).get("conversations") or []:
                 self._gm_convs[c["id"]] = c
-            self.gm.request("conversations", self._on_gm_conversations, count=300)
+            if name == "ready":
+                self.gm.request("conversations", self._on_gm_conversations, count=300)
+                if self._thread_id.startswith("g"):  # reconnected: refresh the open thread
+                    self._gm_fetch(self._thread_id[1:])
             self._threads_dirty.start()
         elif name == "conversation":
             self._gm_convs[data["id"]] = data

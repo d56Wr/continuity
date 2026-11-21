@@ -63,4 +63,17 @@ ItemDelegate {
             }
         }
     }
+
+    // right-click: mark as read / unread (like Messages on macOS)
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: menu.popup()
+    }
+    Menu {
+        id: menu
+        MenuItem {
+            text: model.unread ? qsTr("Mark as Read") : qsTr("Mark as Unread")
+            onTriggered: model.unread ? phone.markRead(model.threadId) : phone.markUnread(model.threadId)
+        }
+    }
 }

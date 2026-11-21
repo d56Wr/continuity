@@ -289,12 +289,7 @@ func handleEvent(raw any) {
 		for _, c := range evt.Conversations {
 			list = append(list, convJSON(c))
 		}
-		event("ready", map[string]any{"conversations": list})
-		go func() {
-			if err := cli.SetActiveSession(bgCtx); err != nil {
-				log.Warn().Err(err).Msg("set active session failed")
-			}
-		}()
+		event("conversations", map[string]any{"conversations": list})
 	case *gmproto.Conversation:
 		mu.Lock()
 		convs[evt.GetConversationID()] = evt
@@ -371,7 +366,20 @@ func connect() error {
 	mu.Lock()
 	cli = c
 	mu.Unlock()
-	return c.Connect(bgCtx)
+	if err := c.Connect(bgCtx); err != nil {
+		return err
+	}
+	afterConnect(c)
+	return nil
+}
+
+// afterConnect makes this the active web session and tells the UI it can load data.
+// (libgm only sends ClientReady on some connection paths, e.g. not after Google pairing.)
+func afterConnect(c *libgm.Client) {
+	if err := c.SetActiveSession(bgCtx); err != nil {
+		log.Warn().Err(err).Msg("set active session failed")
+	}
+	event("ready", map[string]any{"conversations": []jConversation{}})
 }
 
 func startQR() (any, error) {
@@ -523,6 +531,10 @@ func startGoogle(cookies map[string]string) (any, error) {
 		mu.Unlock()
 		saveSession()
 		event("paired", map[string]any{"google": true})
+		for i := 0; i < 60 && !c.IsConnected(); i++ {
+			time.Sleep(500 * time.Millisecond)
+		}
+		afterConnect(c)
 	}()
 	return map[string]any{"started": true}, nil
 }

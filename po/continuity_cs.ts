@@ -110,6 +110,17 @@
     </message>
 </context>
 <context>
+    <name>ConversationDelegate</name>
+    <message>
+        <source>Mark as Read</source>
+        <translation>Označit jako přečtené</translation>
+    </message>
+    <message>
+        <source>Mark as Unread</source>
+        <translation>Označit jako nepřečtené</translation>
+    </message>
+</context>
+<context>
     <name>GoogleMessagesCard</name>
     <message>
         <source>Google Messages · SMS and RCS</source>
