@@ -96,7 +96,8 @@ Rectangle {
         // contact suggestions while composing
         ListView {
             id: suggestions
-            Layout.fillWidth: true
+
+            Kirigami.WheelHandler { target: suggestions; filterMouseEvents: true; keyNavigationEnabled: true }            Layout.fillWidth: true
             Layout.preferredHeight: Math.min(contentHeight, 260)
             visible: root.composing && to.activeFocus || root.composing && activeFocus
             clip: true
@@ -125,7 +126,8 @@ Rectangle {
         // ---------------------------------------------------------- messages
         ListView {
             id: thread
-            Layout.fillWidth: true
+
+            Kirigami.WheelHandler { target: thread; filterMouseEvents: true; keyNavigationEnabled: true }            Layout.fillWidth: true
             Layout.fillHeight: true
             visible: root.hasThread
             clip: true
@@ -139,12 +141,18 @@ Rectangle {
             delegate: MessageBubble { width: thread.width }
 
             property bool stick: true
-            onCountChanged: if (stick) Qt.callLater(positionViewAtEnd)
-            onMovementEnded: stick = atYEnd
-            onAtYBeginningChanged: if (atYBeginning && count > 0 && moving) phone.loadOlder()
+            property bool autoPositioning: false
+            function toEnd() { autoPositioning = true; positionViewAtEnd(); autoPositioning = false }
+            onCountChanged: if (stick) Qt.callLater(toEnd)
+            onContentYChanged: {
+                if (autoPositioning) return
+                stick = atYEnd
+                if (atYBeginning && count > 0 && contentHeight > height) olderTimer.restart()
+            }
+            Timer { id: olderTimer; interval: 250; onTriggered: if (thread.atYBeginning) phone.loadOlder() }
             Connections {
                 target: phone
-                function onThreadChanged() { thread.stick = true; Qt.callLater(thread.positionViewAtEnd) }
+                function onThreadChanged() { thread.stick = true; Qt.callLater(thread.toEnd) }
             }
         }
 

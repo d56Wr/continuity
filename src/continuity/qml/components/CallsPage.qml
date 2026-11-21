@@ -31,7 +31,8 @@ Item {
                 }
                 ListView {
                     id: contacts
-                    Layout.fillWidth: true
+
+                    Kirigami.WheelHandler { target: contacts; filterMouseEvents: true; keyNavigationEnabled: true }                    Layout.fillWidth: true
                     Layout.fillHeight: true
                     clip: true
                     model: phone.contacts

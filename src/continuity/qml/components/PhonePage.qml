@@ -6,7 +6,8 @@ import org.kde.kirigami as Kirigami
 
 Flickable {
     id: root
-    contentHeight: col.implicitHeight + 48
+
+    Kirigami.WheelHandler { target: root; filterMouseEvents: true; keyNavigationEnabled: true }    contentHeight: col.implicitHeight + 48
     clip: true
     ScrollBar.vertical: ScrollBar {}
 
