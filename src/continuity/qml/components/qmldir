@@ -1,0 +1,21 @@
+singleton Theme 1.0 Theme.qml
+ActionTile 1.0 ActionTile.qml
+Avatar 1.0 Avatar.qml
+BatteryIndicator 1.0 BatteryIndicator.qml
+CallBanner 1.0 CallBanner.qml
+CallsPage 1.0 CallsPage.qml
+ChatView 1.0 ChatView.qml
+ConversationDelegate 1.0 ConversationDelegate.qml
+IconButton 1.0 IconButton.qml
+Keypad 1.0 Keypad.qml
+MessageBubble 1.0 MessageBubble.qml
+MessagesPage 1.0 MessagesPage.qml
+NavItem 1.0 NavItem.qml
+NetworkIndicator 1.0 NetworkIndicator.qml
+NotConnectedOverlay 1.0 NotConnectedOverlay.qml
+NotificationCard 1.0 NotificationCard.qml
+NotificationsPage 1.0 NotificationsPage.qml
+PhonePage 1.0 PhonePage.qml
+SearchBox 1.0 SearchBox.qml
+Sidebar 1.0 Sidebar.qml
+Toast 1.0 Toast.qml

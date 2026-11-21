@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "continuity"
+version = "0.1.0"
+description = "Your Android phone on the Linux desktop: messages, calls and notifications, macOS Continuity style"
+readme = "README.md"
+license = "GPL-3.0-or-later"
+requires-python = ">=3.11"
+dependencies = ["PySide6>=6.6", "PyGObject>=3.42"]
+classifiers = [
+  "Environment :: X11 Applications :: Qt",
+  "Operating System :: POSIX :: Linux",
+  "Topic :: Communications :: Telephony",
+]
+
+[project.gui-scripts]
+continuity = "continuity.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+continuity = ["qml/*.qml", "qml/components/*", "data/*", "i18n/*.qm"]

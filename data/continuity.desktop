@@ -1,0 +1,24 @@
+[Desktop Entry]
+Type=Application
+Name=Continuity
+GenericName=Phone Link
+GenericName[cs]=Propojení s telefonem
+Comment=Messages, calls and notifications from your Android phone
+Comment[cs]=Zprávy, hovory a oznámení z telefonu s Androidem
+Exec=continuity
+Icon=continuity
+Categories=Network;Telephony;Qt;
+Keywords=phone;sms;messages;calls;android;kdeconnect;
+StartupWMClass=continuity
+SingleMainWindow=true
+Actions=answer;hangup;
+
+[Desktop Action answer]
+Name=Answer call
+Name[cs]=Přijmout hovor
+Exec=continuity --answer
+
+[Desktop Action hangup]
+Name=Decline / hang up
+Name[cs]=Odmítnout / zavěsit
+Exec=continuity --hangup
