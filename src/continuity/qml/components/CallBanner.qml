@@ -9,7 +9,7 @@ Item {
     visible: opacity > 0
     opacity: phone.callState !== "" ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: 200 } }
-    width: 400
+    width: 440
     height: card.height
 
     readonly property bool ringing: phone.callState === "ringing"
@@ -27,7 +27,7 @@ Item {
     Rectangle {
         id: card
         width: parent.width
-        height: 82
+        height: Math.max(82, info.implicitHeight + 28)
         radius: 20
         color: Theme.dark ? "#2c2c2e" : "#ffffff"
         border.color: Theme.separator
@@ -46,6 +46,7 @@ Item {
                 color: "#8e8e93"
             }
             ColumnLayout {
+                id: info
                 Layout.fillWidth: true
                 spacing: 2
                 Label {
@@ -55,6 +56,14 @@ Item {
                     font.pointSize: Theme.fontSize * 1.1
                     color: Theme.text
                     elide: Text.ElideRight
+                }
+                Label {
+                    Layout.fillWidth: true
+                    visible: phone.callNumber !== "" && phone.callNumber !== phone.callName
+                    text: phone.callNumber
+                    color: Theme.secondary
+                    elide: Text.ElideRight
+                    font.features: { "tnum": 1 }
                 }
                 Label {
                     text: root.ringing ? qsTr("Incoming call…")
@@ -72,8 +81,17 @@ Item {
                 iconName: phone.callMuted ? "microphone-sensitivity-muted-symbolic" : "microphone-sensitivity-high-symbolic"
                 filled: true
                 fill: phone.callMuted ? Theme.orange : (Theme.dark ? "#48484a" : "#d1d1d6")
-                tip: phone.callMuted ? qsTr("Unmute") : qsTr("Mute")
+                tip: phone.callMuted ? qsTr("Unmute microphone") : qsTr("Mute microphone")
                 onClicked: phone.toggleMute()
+            }
+            IconButton {
+                visible: !root.ringing
+                size: 40
+                iconName: phone.callSpeakerMuted ? "audio-volume-muted-symbolic" : "audio-volume-high-symbolic"
+                filled: true
+                fill: phone.callSpeakerMuted ? Theme.orange : (Theme.dark ? "#48484a" : "#d1d1d6")
+                tip: phone.callSpeakerMuted ? qsTr("Unmute sound") : qsTr("Mute sound")
+                onClicked: phone.toggleSpeakerMute()
             }
             IconButton {
                 size: 40

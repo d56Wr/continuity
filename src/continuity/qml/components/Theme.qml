@@ -4,7 +4,11 @@ import org.kde.kirigami as Kirigami
 
 // Colours follow the system palette (light/dark); accents follow macOS.
 QtObject {
-    readonly property bool dark: Kirigami.ColorUtils.brightnessForColor(Kirigami.Theme.backgroundColor) === Kirigami.ColorUtils.Dark
+    // the desktop's light/dark preference (freedesktop portal, updates live when switched);
+    // if the platform doesn't report one, judge by the brightness of the KDE colour scheme
+    readonly property bool dark: Qt.styleHints.colorScheme === Qt.ColorScheme.Dark ? true
+        : Qt.styleHints.colorScheme === Qt.ColorScheme.Light ? false
+        : Kirigami.ColorUtils.brightnessForColor(Kirigami.Theme.backgroundColor) === Kirigami.ColorUtils.Dark
 
     readonly property color accent: dark ? "#0a84ff" : "#007aff"
     readonly property color green: dark ? "#30d158" : "#34c759"

@@ -9,10 +9,10 @@ import sys
 from pathlib import Path
 
 from PySide6.QtCore import QLocale, QTranslator, QUrl, Qt, QTimer
-from PySide6.QtGui import QAction, QIcon
+from PySide6.QtGui import QAction, QGuiApplication, QIcon
 from PySide6.QtNetwork import QLocalServer, QLocalSocket
 import shiboken6
-from PySide6.QtQml import QQmlApplicationEngine
+from PySide6.QtQml import QQmlApplicationEngine, QQmlComponent
 from PySide6.QtQuick import QQuickWindow
 from PySide6.QtWidgets import QApplication, QMenu, QSystemTrayIcon
 
@@ -41,6 +41,20 @@ def _icon() -> QIcon:
     if icon.isNull():
         icon = QIcon(str(HERE / "data" / "continuity.svg"))
     return icon
+
+
+def _load_overlay(engine: QQmlApplicationEngine, base: str):
+    """Floating window (call HUD, message banners): layer-shell on Wayland when available,
+    else an always-on-top window. `base` is the QML file name without ".qml"."""
+    wayland = QGuiApplication.platformName().startswith("wayland")
+    for name in ([f"{base}.qml"] if wayland else []) + [f"{base}Plain.qml"]:
+        comp = QQmlComponent(engine, QUrl.fromLocalFile(str(HERE / "qml" / name)))
+        obj = comp.create() if comp.isReady() else None
+        if obj is not None:
+            return obj
+        logging.getLogger(__name__).info("%s unavailable: %s", name,
+                                         "; ".join(e.toString() for e in comp.errors()))
+    return None
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -101,6 +115,7 @@ def main(argv: list[str] | None = None) -> int:
         window.requestActivate()
 
     phone.showWindowRequested.connect(show_window)
+    overlays = [_load_overlay(engine, "CallWindow"), _load_overlay(engine, "MessageWindow")]  # noqa: F841
 
     def update_badge():
         launcher_badge.set_count(APP_ID, phone.unreadCount)

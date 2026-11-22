@@ -1,4 +1,5 @@
-<?xml version='1.0' encoding='utf-8'?>
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE TS>
 <TS version="2.1" language="cs_CZ">
 <context>
     <name>CallBanner</name>
@@ -15,12 +16,20 @@
         <translation>Podrženo</translation>
     </message>
     <message>
-        <source>Unmute</source>
+        <source>Unmute microphone</source>
         <translation>Zapnout mikrofon</translation>
     </message>
     <message>
-        <source>Mute</source>
+        <source>Mute microphone</source>
         <translation>Ztlumit mikrofon</translation>
+    </message>
+    <message>
+        <source>Unmute sound</source>
+        <translation>Zapnout zvuk</translation>
+    </message>
+    <message>
+        <source>Mute sound</source>
+        <translation>Ztlumit zvuk</translation>
     </message>
     <message>
         <source>Decline</source>
@@ -204,25 +213,6 @@
     </message>
 </context>
 <context>
-    <name>GoogleMessagesPage</name>
-    <message>
-        <source>Google Messages</source>
-        <translation>Google Zprávy</translation>
-    </message>
-    <message>
-        <source>Back</source>
-        <translation>Zpět</translation>
-    </message>
-    <message>
-        <source>Reload</source>
-        <translation>Obnovit</translation>
-    </message>
-    <message>
-        <source>Open in browser</source>
-        <translation>Otevřít v prohlížeči</translation>
-    </message>
-</context>
-<context>
     <name>MessageBubble</name>
     <message>
         <source>Attachment</source>
@@ -239,6 +229,41 @@
     <message>
         <source>Sending…</source>
         <translation>Odesílám…</translation>
+    </message>
+</context>
+<context>
+    <name>MessageStack</name>
+    <message>
+        <source>now</source>
+        <translation>teď</translation>
+    </message>
+    <message>
+        <source>Reply sent</source>
+        <translation>Odpověď odeslána</translation>
+    </message>
+    <message>
+        <source>Copied ✓</source>
+        <translation>Zkopírováno ✓</translation>
+    </message>
+    <message>
+        <source>Copy Code</source>
+        <translation>Zkopírovat kód</translation>
+    </message>
+    <message>
+        <source>Reply…</source>
+        <translation>Odpovědět…</translation>
+    </message>
+    <message>
+        <source>Send</source>
+        <translation>Odeslat</translation>
+    </message>
+    <message>
+        <source>Reply</source>
+        <translation>Odpovědět</translation>
+    </message>
+    <message>
+        <source>Close</source>
+        <translation>Zavřít</translation>
     </message>
 </context>
 <context>
@@ -342,6 +367,25 @@
     </message>
 </context>
 <context>
+    <name>NowPlaying</name>
+    <message>
+        <source>Previous</source>
+        <translation>Předchozí</translation>
+    </message>
+    <message>
+        <source>Pause</source>
+        <translation>Pozastavit</translation>
+    </message>
+    <message>
+        <source>Play</source>
+        <translation>Přehrát</translation>
+    </message>
+    <message>
+        <source>Next</source>
+        <translation>Další</translation>
+    </message>
+</context>
+<context>
     <name>Phone</name>
     <message>
         <source>Attachment saved: %1</source>
@@ -440,18 +484,6 @@
         <translation>Neznámé číslo</translation>
     </message>
     <message>
-        <source>Incoming call</source>
-        <translation>Příchozí hovor</translation>
-    </message>
-    <message>
-        <source>Answer</source>
-        <translation>Přijmout</translation>
-    </message>
-    <message>
-        <source>Decline</source>
-        <translation>Odmítnout</translation>
-    </message>
-    <message>
         <source>Phone is not connected over Bluetooth</source>
         <translation>Telefon není připojený přes Bluetooth</translation>
     </message>
@@ -539,12 +571,24 @@
         </translation>
     </message>
     <message>
+        <source>Now Playing on Phone</source>
+        <translation>Právě hraje v telefonu</translation>
+    </message>
+    <message>
         <source>Drop files here to send them to your phone</source>
         <translation>Přetáhni sem soubory a pošli je do telefonu</translation>
     </message>
     <message>
         <source>Settings</source>
         <translation>Nastavení</translation>
+    </message>
+    <message>
+        <source>Share clipboard automatically</source>
+        <translation>Automaticky sdílet schránku</translation>
+    </message>
+    <message>
+        <source>Text you copy on this computer appears on the phone. Android doesn&apos;t let apps read the clipboard in the background, so to go the other way use &quot;Send clipboard&quot; in the KDE Connect notification or quick-settings tile on the phone.</source>
+        <translation>Co zkopíruješ na počítači, objeví se v telefonu. Android aplikacím na pozadí nedovolí číst schránku, takže opačným směrem použij v telefonu „Odeslat schránku“ v oznámení KDE Connect nebo v dlaždici rychlého nastavení.</translation>
     </message>
     <message>
         <source>Start at login (in the background)</source>
@@ -591,10 +635,6 @@
     <message>
         <source>Messages</source>
         <translation>Zprávy</translation>
-    </message>
-    <message>
-        <source>Google Messages</source>
-        <translation>Google Zprávy</translation>
     </message>
     <message>
         <source>Calls</source>

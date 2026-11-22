@@ -91,6 +91,20 @@ Flickable {
             }
         }
 
+        // what's playing on the phone
+        Label {
+            visible: phone.mediaAvailable
+            text: qsTr("Now Playing on Phone")
+            font.weight: Font.Bold
+            font.pointSize: Theme.fontSize * 1.2
+            color: Theme.text
+            Layout.topMargin: 6
+        }
+        NowPlaying {
+            visible: phone.mediaAvailable
+            Layout.fillWidth: true
+        }
+
         // drop zone
         Rectangle {
             Layout.fillWidth: true
@@ -131,6 +145,23 @@ Flickable {
                 id: settingsCol
                 anchors.fill: parent
                 anchors.margins: 8
+                Switch {
+                    Layout.fillWidth: true
+                    enabled: phone.connected
+                    text: qsTr("Share clipboard automatically")
+                    checked: phone.clipboardAutoShare
+                    onToggled: phone.clipboardAutoShare = checked
+                }
+                Label {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 6
+                    Layout.rightMargin: 6
+                    Layout.bottomMargin: 4
+                    text: qsTr("Text you copy on this computer appears on the phone. Android doesn't let apps read the clipboard in the background, so to go the other way use \"Send clipboard\" in the KDE Connect notification or quick-settings tile on the phone.")
+                    color: Theme.secondary
+                    wrapMode: Text.Wrap
+                    font.pointSize: Theme.fontSize * 0.85
+                }
                 Switch {
                     Layout.fillWidth: true
                     text: qsTr("Start at login (in the background)")

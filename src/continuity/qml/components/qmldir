@@ -21,3 +21,6 @@ SearchBox 1.0 SearchBox.qml
 Segmented 1.0 Segmented.qml
 Sidebar 1.0 Sidebar.qml
 Toast 1.0 Toast.qml
+MessageStack 1.0 MessageStack.qml
+NowPlaying 1.0 NowPlaying.qml
+PillButton 1.0 PillButton.qml

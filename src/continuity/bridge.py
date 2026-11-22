@@ -8,12 +8,13 @@ from datetime import datetime
 
 from PySide6.QtCore import QDateTime, QLocale, QObject, QTimer, QUrl, Property, Signal, Slot
 from PySide6.QtGui import QGuiApplication
+from gi.repository import GLib
 
 from .core.contacts import ContactBook, number_key
 from .core.kdeconnect import KDEConnect, Message, PhoneNotification, TYPE_FAILED, TYPE_OUTBOX, TYPE_QUEUED
 from .core.telephony import IN_PROGRESS, RINGING, AudioRoute, Telephony
 from .models import DictListModel, FilterHelper
-from . import desktop_notify, settings
+from . import otp, settings
 from .gmessages import GMessages
 from .google_login import GoogleLogin
 
@@ -38,6 +39,10 @@ class Phone(QObject):
     threadChanged = Signal()
     toast = Signal(str)
     showWindowRequested = Signal()
+    messageArrived = Signal("QVariantMap")   # incoming SMS/RCS for the floating banner
+    openThreadRequested = Signal(str)        # banner clicked: show this conversation
+    mediaChanged = Signal()
+    clipboardChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -71,6 +76,7 @@ class Phone(QObject):
         self._gm_media: dict[str, str] = {}
         self._gm_downloading: set[str] = set()
         self._gm_qr = ""
+        self._bannered: list[str] = []  # recently announced message ids
         self._gm_inactive = False
         self.gm = GMessages(self)
         self._was_gm_mode = False
@@ -87,7 +93,6 @@ class Phone(QObject):
         self.kc = KDEConnect(self._on_kc)
         route = AudioRoute(settings.get("callSpeaker", ""), settings.get("callMicrophone", ""))
         self.tel = Telephony(self._on_tel, route)
-        self._call_notification = 0
         self._clock = QTimer(self, interval=1000, timeout=self._tick)
         self._clock.start()
         self._threads_dirty = QTimer(self, singleShot=True, interval=150, timeout=self._rebuild_threads)
@@ -179,6 +184,16 @@ class Phone(QObject):
             self.deviceChanged.emit()
         elif kind == "attachment":
             self.toast.emit(self.tr("Attachment saved: %1").replace("%1", payload[1]))
+        elif kind == "incoming_sms":
+            if not self._gm_mode:  # with Google Messages paired the helper announces it
+                self._announce_kc(payload)
+        elif kind == "media":
+            self.mediaChanged.emit()
+        elif kind == "clipboard":
+            self.clipboardChanged.emit()
+        if kind == "device":
+            self.mediaChanged.emit()
+            self.clipboardChanged.emit()
 
     # ================================================================ conversations
     # Two sources feed the Messages tab:
@@ -633,6 +648,8 @@ class Phone(QObject):
                 self._thread_dirty.start()
                 if not data.get("fromMe") and not data.get("old") and self._window_active():
                     self.gm.request("mark_read", None, conversation=cid, message=data["id"])
+            if not data.get("fromMe") and not data.get("old") and not data.get("tmpId"):
+                self._announce_gm(cid, data)
         elif name == "pair_emoji":
             self._gm_emoji = data.get("emoji", "")
             self._gm_emoji_svg = data.get("svg", "")
@@ -860,33 +877,142 @@ class Phone(QObject):
         if self.dev and text:
             self.dev.share_text(text)
 
+    # ================================================================ message banners
+    def _thread_visible(self, tid: str) -> bool:
+        return self._thread_id == tid and self._window_active()
+
+    def _announce(self, mid: str, tid: str, title: str, body: str, avatar: str,
+                  initials: str, color: str) -> None:
+        if mid in self._bannered or self._thread_visible(tid):
+            return
+        self._bannered = (self._bannered + [mid])[-100:]
+        self.messageArrived.emit({
+            "id": mid, "threadId": tid, "title": title, "body": body, "avatar": avatar,
+            "initials": initials, "color": color, "code": otp.find_code(body),
+        })
+
+    def _announce_kc(self, m: Message) -> None:
+        addrs = self._others(m)
+        title = ", ".join(self._name(a) for a in addrs) or "?"
+        self._announce(f"k{m.uid}", f"k{m.thread_id}", title, m.body or self.tr("Attachment"),
+                       self._photo(addrs[0]) if len(addrs) == 1 else "",
+                       _initials(title) if len(addrs) == 1 else str(len(addrs)), _avatar_color(title))
+
+    def _announce_gm(self, cid: str, m: dict) -> None:
+        c = self._gm_convs.get(cid, {})
+        others = self._gm_others(c) if c else []
+        title = c.get("name") or ", ".join(p.get("name") or p.get("number") for p in others) \
+            or m.get("senderName") or "?"
+        body = m.get("text") or self.tr("Attachment")
+        if c.get("group") and m.get("senderName"):
+            body = f"{m['senderName']}: {body}"
+        first = others[0].get("number", "") if len(others) == 1 else ""
+        self._announce("g" + m["id"], "g" + cid, title, body, self._photo(first) if first else "",
+                       _initials(title) if len(others) <= 1 else str(len(others)),
+                       c.get("color") or _avatar_color(title))
+
+    @Slot(str, str)
+    def replyToThread(self, tid: str, text: str) -> None:
+        """Quick reply from the banner, without opening the conversation."""
+        text = text.strip()
+        if not text:
+            return
+        c = self._gm_conv(tid)
+        if c is not None:
+            self.gm.request("send", lambda r, e: e and self.toast.emit(self.tr("Sending failed: %1").replace("%1", e)),
+                            conversation=c["id"], text=text)
+            return
+        m = self._kc_thread(tid)
+        if m and self.dev:
+            self.dev.reply(m.thread_id, text)
+
+    @Slot(str)
+    def showThread(self, tid: str) -> None:
+        self.showWindowRequested.emit()
+        self.openThreadRequested.emit(tid)
+
+    @Slot(str)
+    def copySilently(self, text: str) -> None:
+        QGuiApplication.clipboard().setText(text)
+
+    # ================================================================ clipboard sync
+    @Property(bool, notify=clipboardChanged)
+    def clipboardAutoShare(self):
+        return bool(self.dev and self.dev.clipboard_auto_share())
+
+    @clipboardAutoShare.setter
+    def clipboardAutoShare(self, on: bool):
+        if self.dev:
+            self.dev.set_clipboard_auto_share(on)
+
+    # ================================================================ phone media (mprisremote)
+    def _media(self) -> dict:
+        return self.dev.media if self.dev else {}
+
+    @Property(bool, notify=mediaChanged)
+    def mediaAvailable(self):
+        return bool(self._media().get("playerList")) and bool(self._media().get("title"))
+
+    @Property(str, notify=mediaChanged)
+    def mediaTitle(self):
+        return self._media().get("title", "")
+
+    @Property(str, notify=mediaChanged)
+    def mediaArtist(self):
+        return self._media().get("artist", "")
+
+    @Property(str, notify=mediaChanged)
+    def mediaAlbum(self):
+        return self._media().get("album", "")
+
+    @Property(str, notify=mediaChanged)
+    def mediaArt(self):
+        url = self._media().get("localAlbumArtUrl", "")
+        return url if url and "://" in url else (QUrl.fromLocalFile(url).toString() if url else "")
+
+    @Property(bool, notify=mediaChanged)
+    def mediaPlaying(self):
+        return bool(self._media().get("isPlaying"))
+
+    @Property(int, notify=mediaChanged)
+    def mediaLength(self):
+        return int(self._media().get("length", 0) or 0)
+
+    @Property(int, notify=mediaChanged)
+    def mediaPosition(self):
+        return int(self._media().get("position", 0) or 0)
+
+    @Property(bool, notify=mediaChanged)
+    def mediaCanSeek(self):
+        return bool(self._media().get("canSeek"))
+
+    @Property("QStringList", notify=mediaChanged)
+    def mediaPlayers(self):
+        return list(self._media().get("playerList", []) or [])
+
+    @Property(str, notify=mediaChanged)
+    def mediaPlayer(self):
+        return self._media().get("player", "")
+
+    @Slot(str)
+    def mediaAction(self, action: str) -> None:
+        if self.dev:
+            self.dev.media_action(action)
+
+    @Slot(str)
+    def mediaSelectPlayer(self, name: str) -> None:
+        if self.dev:
+            self.dev.media_set("player", GLib.Variant("s", name))
+
+    @Slot(int)
+    def mediaSeekTo(self, ms: int) -> None:
+        if self.dev:
+            self.dev.media_set("position", GLib.Variant("i", int(ms)))
+
     # ================================================================ calls
     def _on_tel(self, kind: str, payload) -> None:
-        ringing = self.tel.ringing()
-        if ringing and not self._call_notification:
-            self._notify_call(ringing)
-        elif not ringing and self._call_notification:
-            desktop_notify.close(self._call_notification)
-            self._call_notification = 0
+        # incoming calls are shown by the floating call window (CallWindow.qml)
         self.callChanged.emit()
-
-    def _notify_call(self, call) -> None:
-        name = self._name(call.number) if call.number else (call.name or self.tr("Unknown caller"))
-        body = name if name == call.number or not call.number else f"{name}\n{call.number}"
-        self._call_notification = desktop_notify.notify(
-            self.tr("Incoming call"), body, "call-start",
-            [("answer", self.tr("Answer")), ("decline", self.tr("Decline")), ("default", "")],
-            self._on_call_notification_action, urgency=2, category="call.incoming", resident=True)
-
-    def _on_call_notification_action(self, action: str) -> None:
-        if action == "answer":
-            self.tel.answer()
-            self.showWindowRequested.emit()
-        elif action == "decline":
-            self.tel.decline()
-        elif action == "default":
-            self.showWindowRequested.emit()
-        self._call_notification = 0
 
     def _call(self):
         return self.tel.ringing() or self.tel.current()
@@ -927,6 +1053,10 @@ class Phone(QObject):
     def callMuted(self):
         return self.tel.muted
 
+    @Property(bool, notify=callChanged)
+    def callSpeakerMuted(self):
+        return self.tel.speaker_muted
+
     def _tick(self) -> None:
         if self.tel.current():
             self.callChanged.emit()
@@ -946,6 +1076,22 @@ class Phone(QObject):
     @Slot()
     def toggleMute(self):
         self.tel.set_muted(not self.tel.muted)
+
+    @Slot(str, result="QVariantMap")
+    def windowPlacement(self, key: str) -> dict:
+        """Last saved position of a floating window (e.g. the call HUD); {} if none."""
+        v = (settings.get("placement", {}) or {}).get(key)
+        return v if isinstance(v, dict) else {}
+
+    @Slot(str, "QVariantMap")
+    def saveWindowPlacement(self, key: str, value: dict) -> None:
+        placement = dict(settings.get("placement", {}) or {})
+        placement[key] = {k: int(v) for k, v in value.items()}
+        settings.set("placement", placement)
+
+    @Slot()
+    def toggleSpeakerMute(self):
+        self.tel.set_speaker_muted(not self.tel.speaker_muted)
 
     @Slot(str)
     def sendTones(self, tones: str):

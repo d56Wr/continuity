@@ -28,6 +28,7 @@ CALL_IF = "org.pipewire.Telephony.Call1"
 
 RINGING = ("incoming", "waiting")
 IN_PROGRESS = ("active", "dialing", "alerting", "held")
+CALLER_NODE = "continuity-caller-playback"  # the stream playing the caller's voice
 
 
 @dataclass
@@ -53,6 +54,7 @@ class Telephony:
         self.gateways: dict[str, dict] = {}
         self.calls: dict[str, Call] = {}
         self.muted = False
+        self.speaker_muted = False
         self._loops: list[subprocess.Popen] = []
         self._bt_sink: str | None = None
         self._default_source_before: str | None = None
@@ -153,6 +155,13 @@ class Telephony:
             _pactl("set-sink-mute", self._bt_sink, "1" if muted else "0")
         self._listener("calls", None)
 
+    def set_speaker_muted(self, muted: bool) -> None:
+        """Silence the caller's voice on this computer (the phone keeps the call)."""
+        self.speaker_muted = muted
+        if self._loops:
+            _mute_stream(CALLER_NODE, muted)
+        self._listener("calls", None)
+
     # ------------------------------------------------------------ audio routing
     @staticmethod
     def _bt_nodes() -> tuple[str | None, str | None]:
@@ -192,7 +201,9 @@ class Telephony:
         self._bt_sink = sink
         self._default_source_before = _pactl("get-default-source")
         keep = ["--capture-props=node.dont-reconnect=true", "--playback-props=node.dont-reconnect=true"]
-        caller = ["pw-loopback", "-n", "continuity-caller", "-C", src, *keep]
+        caller = ["pw-loopback", "-n", "continuity-caller", "-C", src,
+                  "--capture-props=node.dont-reconnect=true",
+                  f"--playback-props=node.dont-reconnect=true node.name={CALLER_NODE}"]
         mic = ["pw-loopback", "-n", "continuity-mic", "-P", sink, *keep]
         if self.route.speaker:
             caller += ["-P", self.route.speaker]
@@ -202,6 +213,8 @@ class Telephony:
                  self.route.microphone or "default", sink)
         self._loops = [subprocess.Popen(caller), subprocess.Popen(mic)]
         GLib.timeout_add(1500, self._restore_default_source)
+        if self.speaker_muted:
+            GLib.timeout_add(800, lambda: _mute_stream(CALLER_NODE, True) and False)
         return False
 
     def _restore_default_source(self) -> bool:
@@ -221,6 +234,7 @@ class Telephony:
         self._loops = []
         self._bt_sink = None
         self.muted = False
+        self.speaker_muted = False
         self._restore_default_source()
 
     def shutdown(self) -> None:
@@ -232,3 +246,17 @@ def _pactl(*args: str) -> str:
         return subprocess.run(["pactl", *args], capture_output=True, text=True, timeout=3).stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return ""
+
+
+def _mute_stream(node_name: str, muted: bool) -> bool:
+    """Mute a playback stream (sink input) by its PipeWire node.name."""
+    try:
+        inputs = json.loads(_pactl("-f", "json", "list", "sink-inputs") or "[]")
+    except json.JSONDecodeError:
+        return False
+    for si in inputs:
+        if (si.get("properties") or {}).get("node.name") == node_name:
+            _pactl("set-sink-input-mute", str(si["index"]), "1" if muted else "0")
+            return True
+    log.warning("call playback stream %s not found", node_name)
+    return False

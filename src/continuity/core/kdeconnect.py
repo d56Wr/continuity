@@ -5,8 +5,11 @@ Plain Python with listener callbacks so it can be tested without Qt; the Qt laye
 """
 from __future__ import annotations
 
+import configparser
 import logging
+import os
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Callable
 
 from gi.repository import GLib
@@ -22,6 +25,8 @@ DEV_IF = "org.kde.kdeconnect.device"
 CONV_IF = "org.kde.kdeconnect.device.conversations"
 NOTIF_IF = "org.kde.kdeconnect.device.notifications"
 NOTIF_ITEM_IF = "org.kde.kdeconnect.device.notifications.notification"
+MPRIS_IF = "org.kde.kdeconnect.device.mprisremote"
+CLIP_IF = "org.kde.kdeconnect.device.clipboard"
 
 # Android Telephony.Sms message types
 TYPE_INBOX, TYPE_SENT, TYPE_DRAFT, TYPE_OUTBOX, TYPE_FAILED, TYPE_QUEUED = 1, 2, 3, 4, 5, 6
@@ -100,6 +105,7 @@ class Device:
         self.messages: dict[int, dict[int, Message]] = {}  # thread -> uid -> message
         self.loaded_counts: dict[int, int] = {}
         self.notifications: dict[str, PhoneNotification] = {}
+        self.media: dict = {}  # mprisremote properties of the phone's current player
         self._subs: list[int] = []
         self._subscribe()
         # refresh() is called by the owner once this object is reachable as `kc.device`
@@ -118,6 +124,9 @@ class Device:
             s(SVC, NOTIF_ITEM_IF, "ready", p + "/notifications/", self._on_notification_ready, path_prefix=True),
             s(SVC, "org.kde.kdeconnect.device.contacts", "localCacheSynchronized", p + "/contacts",
               lambda *a: self._emit("contacts", None)),
+            s(SVC, MPRIS_IF, "propertiesChanged", p + "/mprisremote", lambda *a: self._load_media()),
+            s(SVC, CLIP_IF, "autoShareDisabledChanged", p + "/clipboard",
+              lambda *a: self._emit("clipboard", None)),
             s(SVC, "org.kde.kdeconnect.device.conversations", "attachmentReceived", p,
               lambda path, sig, args: self._emit("attachment", args)),
         ]
@@ -145,6 +154,8 @@ class Device:
         if self.reachable:
             self.load_threads()
             self.load_notifications()
+            dbus.call_async(SVC, self.path + "/mprisremote", MPRIS_IF, "requestPlayerList")
+            self._load_media()
 
     # ------------------------------------------------------------ device signals
     def _on_device_signal(self, path, sig, args) -> None:
@@ -277,6 +288,41 @@ class Device:
     def reply_notification(self, nid: str, text: str) -> None:
         dbus.call_async(SVC, f"{self.path}/notifications/{nid}", NOTIF_ITEM_IF, "sendReply",
                         GLib.Variant("(s)", (text,)))
+
+    # ------------------------------------------------------------ media on the phone
+    def _load_media(self) -> None:
+        self.media = dbus.get_all(SVC, self.path + "/mprisremote", MPRIS_IF) if self.reachable else {}
+        self._emit("media", None)
+
+    def media_action(self, action: str) -> None:
+        """PlayPause, Play, Pause, Next, Previous, Stop."""
+        dbus.call_async(SVC, self.path + "/mprisremote", MPRIS_IF, "sendAction", GLib.Variant("(s)", (action,)))
+
+    def media_set(self, prop: str, value: GLib.Variant) -> None:
+        dbus.call_async(SVC, self.path + "/mprisremote", "org.freedesktop.DBus.Properties", "Set",
+                        GLib.Variant("(ssv)", (MPRIS_IF, prop, value)),
+                        lambda *a: self._load_media())
+
+    # ------------------------------------------------------------ clipboard sync
+    def clipboard_auto_share(self) -> bool:
+        return not dbus.get(SVC, self.path + "/clipboard", CLIP_IF, "isAutoShareDisabled", True)
+
+    def set_clipboard_auto_share(self, on: bool) -> None:
+        """Same setting as KDE Connect's clipboard plugin dialog (the daemon reloads on configChanged)."""
+        cfg = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "kdeconnect" / self.id \
+            / "kdeconnect_clipboard" / "config"
+        cp = configparser.ConfigParser()
+        cp.optionxform = str
+        cp.read(cfg)
+        if not cp.has_section("General"):
+            cp.add_section("General")
+        cp["General"]["autoShare"] = "true" if on else "false"
+        cfg.parent.mkdir(parents=True, exist_ok=True)
+        with open(cfg, "w") as f:
+            cp.write(f, space_around_delimiters=False)
+        dbus.bus().emit_signal(None, f"/kdeconnect/{self.id}/kdeconnect_clipboard",
+                               "org.kde.kdeconnect.config", "configChanged", None)
+        GLib.timeout_add(400, lambda: self._emit("clipboard", None) and False)
 
     # ------------------------------------------------------------ other actions
     def ring(self) -> None:

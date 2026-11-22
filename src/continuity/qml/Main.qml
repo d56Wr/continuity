@@ -56,13 +56,10 @@ ApplicationWindow {
         visible: !phone.connected
     }
 
-    CallBanner {
-        anchors.top: parent.top
-        anchors.topMargin: 14
-        anchors.horizontalCenter: parent.horizontalCenter
-        z: 50
-    }
-
     Toast { id: toast; z: 60 }
     Connections { target: phone; function onToast(text) { toast.show(text) } }
+    Connections {
+        target: phone
+        function onOpenThreadRequested(tid) { win.page = 0; messages.openConversation(tid) }
+    }
 }

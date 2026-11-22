@@ -10,6 +10,7 @@ Item {
     property bool composing: false
 
     function focusSearch() { search.forceActiveFocus() }
+    function openConversation(tid) { composing = false; phone.openThread(tid); chat.focusComposer() }
     function newMessage() { composing = true; chat.startCompose("") }
     function composeTo(number) {
         const tid = phone.threadForNumber(number)
