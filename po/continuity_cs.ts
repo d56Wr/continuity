@@ -480,6 +480,82 @@
         <translation>Schránka odeslána do telefonu</translation>
     </message>
     <message>
+        <source>Ocean · New Message</source>
+        <translation>Ocean · Nová zpráva</translation>
+    </message>
+    <message>
+        <source>Ocean · Contact</source>
+        <translation>Ocean · Kontakt</translation>
+    </message>
+    <message>
+        <source>Ocean · Highlight</source>
+        <translation>Ocean · Zvýraznění</translation>
+    </message>
+    <message>
+        <source>Ocean · Attention</source>
+        <translation>Ocean · Upozornění</translation>
+    </message>
+    <message>
+        <source>Ocean · Mail</source>
+        <translation>Ocean · Pošta</translation>
+    </message>
+    <message>
+        <source>Ocean · Info</source>
+        <translation>Ocean · Informace</translation>
+    </message>
+    <message>
+        <source>Ocean · Bell</source>
+        <translation>Ocean · Zvonek</translation>
+    </message>
+    <message>
+        <source>Classic · New Message</source>
+        <translation>Klasický · Nová zpráva</translation>
+    </message>
+    <message>
+        <source>Classic · Message</source>
+        <translation>Klasický · Zpráva</translation>
+    </message>
+    <message>
+        <source>Classic · Complete</source>
+        <translation>Klasický · Hotovo</translation>
+    </message>
+    <message>
+        <source>Classic · Attention</source>
+        <translation>Klasický · Upozornění</translation>
+    </message>
+    <message>
+        <source>Classic · Bell</source>
+        <translation>Klasický · Zvonek</translation>
+    </message>
+    <message>
+        <source>Ocean · Ringtone</source>
+        <translation>Ocean · Vyzvánění</translation>
+    </message>
+    <message>
+        <source>Classic · Ringtone</source>
+        <translation>Klasický · Vyzvánění</translation>
+    </message>
+    <message>
+        <source>Classic · Calling</source>
+        <translation>Klasický · Volání</translation>
+    </message>
+    <message>
+        <source>Ocean · Alarm</source>
+        <translation>Ocean · Budík</translation>
+    </message>
+    <message>
+        <source>Classic · Alarm</source>
+        <translation>Klasický · Budík</translation>
+    </message>
+    <message>
+        <source>None</source>
+        <translation>Žádný</translation>
+    </message>
+    <message>
+        <source>Custom: %1</source>
+        <translation>Vlastní: %1</translation>
+    </message>
+    <message>
         <source>Unknown caller</source>
         <translation>Neznámé číslo</translation>
     </message>
@@ -591,6 +667,14 @@
         <translation>Co zkopíruješ na počítači, objeví se v telefonu. Android aplikacím na pozadí nedovolí číst schránku, takže opačným směrem použij v telefonu „Odeslat schránku“ v oznámení KDE Connect nebo v dlaždici rychlého nastavení.</translation>
     </message>
     <message>
+        <source>Message sound</source>
+        <translation>Zvuk zprávy</translation>
+    </message>
+    <message>
+        <source>Ringtone</source>
+        <translation>Vyzvánění</translation>
+    </message>
+    <message>
         <source>Start at login (in the background)</source>
         <translation>Spouštět po přihlášení (na pozadí)</translation>
     </message>
@@ -659,6 +743,25 @@
     <message>
         <source>Browse phone files</source>
         <translation>Procházet soubory v telefonu</translation>
+    </message>
+</context>
+<context>
+    <name>SoundPicker</name>
+    <message>
+        <source>Custom file…</source>
+        <translation>Vlastní soubor…</translation>
+    </message>
+    <message>
+        <source>Play</source>
+        <translation>Přehrát</translation>
+    </message>
+    <message>
+        <source>Choose a sound</source>
+        <translation>Vyber zvuk</translation>
+    </message>
+    <message>
+        <source>Sounds (*.oga *.ogg *.wav *.flac)</source>
+        <translation>Zvuky (*.oga *.ogg *.wav *.flac)</translation>
     </message>
 </context>
 <context>

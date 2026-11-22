@@ -15,6 +15,7 @@ from .core.kdeconnect import KDEConnect, Message, PhoneNotification, TYPE_FAILED
 from .core.telephony import IN_PROGRESS, RINGING, AudioRoute, Telephony
 from .models import DictListModel, FilterHelper
 from . import otp, settings
+from . import sounds as snd
 from .gmessages import GMessages
 from .google_login import GoogleLogin
 
@@ -77,6 +78,8 @@ class Phone(QObject):
         self._gm_downloading: set[str] = set()
         self._gm_qr = ""
         self._bannered: list[str] = []  # recently announced message ids
+        self.sounds = snd.Sounds(settings.get("messageSound", snd.DEFAULT_MESSAGE),
+                                 settings.get("ringSound", snd.DEFAULT_RING), self)
         self._gm_inactive = False
         self.gm = GMessages(self)
         self._was_gm_mode = False
@@ -886,6 +889,7 @@ class Phone(QObject):
         if mid in self._bannered or self._thread_visible(tid):
             return
         self._bannered = (self._bannered + [mid])[-100:]
+        self.sounds.play_message()
         self.messageArrived.emit({
             "id": mid, "threadId": tid, "title": title, "body": body, "avatar": avatar,
             "initials": initials, "color": color, "code": otp.find_code(body),
@@ -926,6 +930,32 @@ class Phone(QObject):
         if m and self.dev:
             self.dev.reply(m.thread_id, text)
 
+    @Slot(str, str, str)
+    def markBannerRead(self, mid: str, tid: str, body: str) -> None:
+        """After copying a code or replying from a banner: mark the message read (on the phone too,
+        with Google Messages) and dismiss the matching notification on the phone."""
+        c = self._gm_conv(tid)
+        if c is not None:
+            if mid.startswith("g"):
+                self.gm.request("mark_read", None, conversation=c["id"], message=mid[1:])
+            c["unread"] = False
+        else:
+            m = self._kc_thread(tid)
+            if m:
+                self._unread_seen[tid] = max(self._unread_seen.get(tid, 0), m.date)
+                settings.set("seen", self._unread_seen)
+        if tid in self._marked_unread:
+            self._marked_unread.discard(tid)
+            settings.set("markedUnread", sorted(self._marked_unread))
+        self._threads_dirty.start()
+        if self.dev:
+            norm = lambda t: " ".join((t or "").split())
+            text = norm(body)
+            for nid, n in list(self.dev.notifications.items()):
+                ntext = norm(n.text)
+                if n.dismissable and ntext and (ntext in text or text in ntext):
+                    self.dev.dismiss(nid)
+
     @Slot(str)
     def showThread(self, tid: str) -> None:
         self.showWindowRequested.emit()
@@ -934,6 +964,69 @@ class Phone(QObject):
     @Slot(str)
     def copySilently(self, text: str) -> None:
         QGuiApplication.clipboard().setText(text)
+
+    soundsChanged = Signal()
+
+    def _sound_list(self, table, current: str) -> list[dict]:
+        labels = {  # translatable labels for the built-in tones
+            "Ocean · New Message": self.tr("Ocean · New Message"), "Ocean · Contact": self.tr("Ocean · Contact"),
+            "Ocean · Highlight": self.tr("Ocean · Highlight"), "Ocean · Attention": self.tr("Ocean · Attention"),
+            "Ocean · Mail": self.tr("Ocean · Mail"), "Ocean · Info": self.tr("Ocean · Info"),
+            "Ocean · Bell": self.tr("Ocean · Bell"), "Classic · New Message": self.tr("Classic · New Message"),
+            "Classic · Message": self.tr("Classic · Message"), "Classic · Complete": self.tr("Classic · Complete"),
+            "Classic · Attention": self.tr("Classic · Attention"), "Classic · Bell": self.tr("Classic · Bell"),
+            "Ocean · Ringtone": self.tr("Ocean · Ringtone"), "Classic · Ringtone": self.tr("Classic · Ringtone"),
+            "Classic · Calling": self.tr("Classic · Calling"), "Ocean · Alarm": self.tr("Ocean · Alarm"),
+            "Classic · Alarm": self.tr("Classic · Alarm"),
+        }
+        out = [{"id": "", "label": self.tr("None")}]
+        out += [{"id": sid, "label": labels.get(label, label)} for sid, label in snd.choices(table)]
+        if current.startswith("/"):
+            out.append({"id": current, "label": self.tr("Custom: %1").replace("%1", current.rsplit("/", 1)[-1])})
+        return out
+
+    @Property("QVariantList", notify=soundsChanged)
+    def messageSounds(self):
+        return self._sound_list(snd.MESSAGE_SOUNDS, self.sounds.message)
+
+    @Property("QVariantList", notify=soundsChanged)
+    def ringSounds(self):
+        return self._sound_list(snd.RING_SOUNDS, self.sounds.ringtone)
+
+    @Property(str, notify=soundsChanged)
+    def messageSound(self):
+        return self.sounds.message
+
+    @messageSound.setter
+    def messageSound(self, sid: str):
+        self.sounds.message = sid
+        settings.set("messageSound", sid)
+        self.soundsChanged.emit()
+
+    @Property(str, notify=soundsChanged)
+    def ringSound(self):
+        return self.sounds.ringtone
+
+    @ringSound.setter
+    def ringSound(self, sid: str):
+        self.sounds.ringtone = sid
+        settings.set("ringSound", sid)
+        if not sid:
+            self.sounds.stop_ring()
+        self.soundsChanged.emit()
+
+    @Slot(str, str)
+    def setCustomSound(self, kind: str, url: str) -> None:
+        path = QUrl(url).toLocalFile() or url
+        if kind == "ring":
+            self.ringSound = path
+        else:
+            self.messageSound = path
+        self.previewSound(path)
+
+    @Slot(str)
+    def previewSound(self, sid: str) -> None:
+        self.sounds.preview(sid)
 
     # ================================================================ clipboard sync
     @Property(bool, notify=clipboardChanged)
@@ -1012,6 +1105,10 @@ class Phone(QObject):
     # ================================================================ calls
     def _on_tel(self, kind: str, payload) -> None:
         # incoming calls are shown by the floating call window (CallWindow.qml)
+        if self.tel.ringing():
+            self.sounds.ring()
+        else:
+            self.sounds.stop_ring()
         self.callChanged.emit()
 
     def _call(self):
@@ -1142,5 +1239,6 @@ class Phone(QObject):
             self.toast.emit(self.tr("Restart Continuity to change the language"))
 
     def shutdown(self) -> None:
+        self.sounds.stop_ring()
         self.tel.shutdown()
         self.gm.stop()

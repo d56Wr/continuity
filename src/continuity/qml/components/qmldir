@@ -24,3 +24,4 @@ Toast 1.0 Toast.qml
 MessageStack 1.0 MessageStack.qml
 NowPlaying 1.0 NowPlaying.qml
 PillButton 1.0 PillButton.qml
+SoundPicker 1.0 SoundPicker.qml

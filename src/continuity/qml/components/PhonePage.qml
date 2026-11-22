@@ -162,6 +162,22 @@ Flickable {
                     wrapMode: Text.Wrap
                     font.pointSize: Theme.fontSize * 0.85
                 }
+                SoundPicker {
+                    Layout.fillWidth: true
+                    label: qsTr("Message sound")
+                    kind: "message"
+                    options: phone.messageSounds
+                    current: phone.messageSound
+                    onPicked: (id) => phone.messageSound = id
+                }
+                SoundPicker {
+                    Layout.fillWidth: true
+                    label: qsTr("Ringtone")
+                    kind: "ring"
+                    options: phone.ringSounds
+                    current: phone.ringSound
+                    onPicked: (id) => phone.ringSound = id
+                }
                 Switch {
                     Layout.fillWidth: true
                     text: qsTr("Start at login (in the background)")

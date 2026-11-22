@@ -148,6 +148,7 @@ Item {
                                 primary: !banner.copied
                                 onClicked: {
                                     phone.copySilently(banner.code)
+                                    phone.markBannerRead(banner.id, banner.threadId, banner.body)
                                     banner.copied = true
                                     closeSoon.restart()
                                 }
@@ -172,6 +173,7 @@ Item {
                                 function send() {
                                     if (text.trim() === "") return
                                     phone.replyToThread(banner.threadId, text)
+                                    phone.markBannerRead(banner.id, banner.threadId, banner.body)
                                     text = ""
                                     banner.replying = false
                                     banner.sent = true

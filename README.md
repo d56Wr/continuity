@@ -33,7 +33,8 @@ screen, reply to a text without leaving your game, and paste a login code straig
 |---|---|
 | 💬 **Messages** | **SMS and RCS** (chats with iPhones included) via Google Messages: full history, replies and new conversations, photos and files, reactions, *Sent / Delivered / Read*, green SMS vs blue RCS bubbles, an unread filter and local *mark as unread*. Falls back to SMS/MMS over KDE Connect when Google Messages isn't paired. |
 | 🔔 **Message banners** | New messages slide in at the top-right corner, even when the window is hidden. **Reply inline** without opening the app, or click to jump to the conversation. |
-| 🔑 **Security codes** | One-time codes ("G-482913 is your verification code") are detected automatically and shown big with a **Copy Code** button. Amounts, dates and phone numbers are ignored. |
+| 🔑 **Security codes** | One-time codes ("G-482913 is your verification code") are detected automatically and shown big with a **Copy Code** button. Amounts, dates and phone numbers are ignored. Copying the code (or replying) marks the message as read and clears its notification on the phone. |
+| 🔊 **Sounds** | A sound for new messages and a ringtone that rings until you answer. Pick from the desktop's sound themes, use your own file, or turn them off. Everything stays quiet in *Do Not Disturb*. |
 | 📞 **Calls** | A floating call window above everything, fullscreen apps included: caller name or number, **Answer / Decline**, then a live timer, **mute microphone**, **mute sound** and **hang up**. Call audio runs through your computer's mic and speakers or headset. Dial pad and contacts are built in. |
 | 🎵 **Now Playing** | See and control what's playing on the phone: artwork, seek bar, play/pause, next/previous, and switching between player apps. |
 | 📋 **Clipboard** | Text you copy on the computer appears on the phone. You can also send the clipboard on demand. |
