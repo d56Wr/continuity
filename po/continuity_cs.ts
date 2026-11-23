@@ -266,6 +266,14 @@
         <translation>Odpovědět</translation>
     </message>
     <message>
+        <source>Mark as Read</source>
+        <translation>Označit jako přečtené</translation>
+    </message>
+    <message>
+        <source>Clear</source>
+        <translation>Vymazat</translation>
+    </message>
+    <message>
         <source>Close</source>
         <translation>Zavřít</translation>
     </message>

@@ -219,12 +219,19 @@ Item {
                             }
                         }
 
+                        // actions on hover (a code banner has them next to the code instead)
                         RowLayout {
-                            visible: banner.code === "" && banner.canReply && !banner.replying && !banner.sent && hover.hovered
+                            visible: banner.code === "" && banner.kind !== "test" && !banner.replying
+                                     && !banner.sent && hover.hovered
                             Layout.fillWidth: true
                             spacing: 8
                             Item { Layout.fillWidth: true }
+                            PillButton {   // texts: read (also on the phone); app notifications: clear on the phone
+                                text: banner.kind === "message" ? qsTr("Mark as Read") : qsTr("Clear")
+                                onClicked: { banner.done(); banner.close() }
+                            }
                             PillButton {
+                                visible: banner.canReply
                                 text: qsTr("Reply")
                                 onClicked: { banner.replying = true; reply.forceActiveFocus() }
                             }
