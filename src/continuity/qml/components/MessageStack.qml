@@ -167,6 +167,11 @@ Item {
                                 font.features: { "tnum": 1 }
                                 color: Theme.text
                             }
+                            PillButton {   // Reply sits next to Copy Code on a code banner
+                                visible: banner.canReply && !banner.replying && !banner.sent
+                                text: qsTr("Reply")
+                                onClicked: { banner.replying = true; reply.forceActiveFocus() }
+                            }
                             PillButton {
                                 text: banner.copied ? qsTr("Copied ✓") : qsTr("Copy Code")
                                 primary: !banner.copied
@@ -213,7 +218,7 @@ Item {
                         }
 
                         RowLayout {
-                            visible: banner.canReply && !banner.replying && !banner.sent && (hover.hovered || banner.code !== "")
+                            visible: banner.code === "" && banner.canReply && !banner.replying && !banner.sent && hover.hovered
                             Layout.fillWidth: true
                             spacing: 8
                             Item { Layout.fillWidth: true }
