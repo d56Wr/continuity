@@ -667,6 +667,14 @@
         <translation>Co zkopíruješ na počítači, objeví se v telefonu. Android aplikacím na pozadí nedovolí číst schránku, takže opačným směrem použij v telefonu „Odeslat schránku“ v oznámení KDE Connect nebo v dlaždici rychlého nastavení.</translation>
     </message>
     <message>
+        <source>Reconnect Bluetooth for calls automatically</source>
+        <translation>Automaticky připojovat Bluetooth pro hovory</translation>
+    </message>
+    <message>
+        <source>Phones don&apos;t reconnect to a computer on their own, so Continuity reconnects the paired phone whenever it&apos;s nearby, like a car kit does.</source>
+        <translation>Telefony se k počítači samy znovu nepřipojují, proto Continuity připojí spárovaný telefon, kdykoli je poblíž – stejně jako to dělá autorádio.</translation>
+    </message>
+    <message>
         <source>Message sound</source>
         <translation>Zvuk zprávy</translation>
     </message>

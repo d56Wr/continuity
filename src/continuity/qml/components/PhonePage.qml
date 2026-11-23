@@ -162,6 +162,21 @@ Flickable {
                     wrapMode: Text.Wrap
                     font.pointSize: Theme.fontSize * 0.85
                 }
+                Switch {
+                    text: qsTr("Reconnect Bluetooth for calls automatically")
+                    checked: phone.bluetoothReconnect
+                    onToggled: phone.bluetoothReconnect = checked
+                }
+                Label {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 6
+                    Layout.rightMargin: 6
+                    Layout.bottomMargin: 4
+                    text: qsTr("Phones don't reconnect to a computer on their own, so Continuity reconnects the paired phone whenever it's nearby, like a car kit does.")
+                    color: Theme.secondary
+                    wrapMode: Text.Wrap
+                    font.pointSize: Theme.fontSize * 0.85
+                }
                 SoundPicker {
                     Layout.fillWidth: true
                     label: qsTr("Message sound")

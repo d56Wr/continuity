@@ -12,6 +12,7 @@ from gi.repository import GLib
 
 from .core.contacts import ContactBook, number_key
 from .core.kdeconnect import KDEConnect, Message, PhoneNotification, TYPE_FAILED, TYPE_OUTBOX, TYPE_QUEUED
+from .core.bluetooth import BluetoothReconnect
 from .core.telephony import IN_PROGRESS, RINGING, AudioRoute, Telephony
 from .models import DictListModel, FilterHelper
 from . import otp, settings
@@ -44,6 +45,7 @@ class Phone(QObject):
     openThreadRequested = Signal(str)        # banner clicked: show this conversation
     mediaChanged = Signal()
     clipboardChanged = Signal()
+    bluetoothChanged = Signal()
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -96,6 +98,11 @@ class Phone(QObject):
         self.kc = KDEConnect(self._on_kc)
         route = AudioRoute(settings.get("callSpeaker", ""), settings.get("callMicrophone", ""))
         self.tel = Telephony(self._on_tel, route)
+        self._was_reachable = False
+        self.bt = BluetoothReconnect(lambda: self.tel.available,
+                                     lambda: self.dev.name if self.dev else "",
+                                     lambda: bool(self.dev and self.dev.reachable))
+        self.bt.enabled = bool(settings.get("bluetoothReconnect", True))
         self._clock = QTimer(self, interval=1000, timeout=self._tick)
         self._clock.start()
         self._threads_dirty = QTimer(self, singleShot=True, interval=150, timeout=self._rebuild_threads)
@@ -168,6 +175,10 @@ class Phone(QObject):
             if dev and (self._book is None or self._book.dir.name != f"kdeconnect-{dev.id}"):
                 self._book = ContactBook(dev.id)
                 self._rebuild_contacts()
+            reachable = bool(dev and dev.reachable)
+            if reachable and not self._was_reachable:
+                self.bt.poke()  # the phone is nearby again: bring up calls too
+            self._was_reachable = reachable
             self.deviceChanged.emit()
         elif kind == "threads":
             self._threads_dirty.start()
@@ -1029,6 +1040,20 @@ class Phone(QObject):
         self.sounds.preview(sid)
 
     # ================================================================ clipboard sync
+    @Property(bool, notify=bluetoothChanged)
+    def bluetoothReconnect(self):
+        return self.bt.enabled
+
+    @bluetoothReconnect.setter
+    def bluetoothReconnect(self, on: bool):
+        if on == self.bt.enabled:
+            return
+        self.bt.enabled = on
+        settings.set("bluetoothReconnect", on)
+        self.bluetoothChanged.emit()
+        if on:
+            self.bt.poke()
+
     @Property(bool, notify=clipboardChanged)
     def clipboardAutoShare(self):
         return bool(self.dev and self.dev.clipboard_auto_share())
