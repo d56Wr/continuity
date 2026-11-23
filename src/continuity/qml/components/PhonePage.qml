@@ -177,6 +177,29 @@ Flickable {
                     wrapMode: Text.Wrap
                     font.pointSize: Theme.fontSize * 0.85
                 }
+                Switch {
+                    text: qsTr("Show phone notifications as banners")
+                    checked: phone.phoneBanners
+                    onToggled: phone.phoneBanners = checked
+                }
+                RowLayout {
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 6
+                    Layout.rightMargin: 6
+                    Layout.bottomMargin: 4
+                    spacing: 12
+                    Label {
+                        Layout.fillWidth: true
+                        text: qsTr("Notifications from apps on the phone slide in like texts do, and KDE Connect's own popups are turned off so nothing shows twice. Show a test banner and drag it to where banners should appear.")
+                        color: Theme.secondary
+                        wrapMode: Text.Wrap
+                        font.pointSize: Theme.fontSize * 0.85
+                    }
+                    PillButton {
+                        text: qsTr("Test Notification")
+                        onClicked: phone.testBanner()
+                    }
+                }
                 SoundPicker {
                     Layout.fillWidth: true
                     label: qsTr("Message sound")

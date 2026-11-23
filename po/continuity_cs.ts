@@ -366,6 +366,22 @@
         <translation>Zavřít vše</translation>
     </message>
     <message>
+        <source>Collapse</source>
+        <translation>Sbalit</translation>
+    </message>
+    <message>
+        <source>Expand</source>
+        <translation>Rozbalit</translation>
+    </message>
+    <message>
+        <source>Clear all from %1</source>
+        <translation>Smazat vše z %1</translation>
+    </message>
+    <message>
+        <source>Dismiss on phone</source>
+        <translation>Zavřít v telefonu</translation>
+    </message>
+    <message>
         <source>No notifications</source>
         <translation>Žádná oznámení</translation>
     </message>
@@ -462,6 +478,14 @@
     <message>
         <source>Syncing contacts…</source>
         <translation>Synchronizuji kontakty…</translation>
+    </message>
+    <message>
+        <source>Test notification</source>
+        <translation>Testovací oznámení</translation>
+    </message>
+    <message>
+        <source>Drag this banner to where phone notifications should appear.</source>
+        <translation>Přetáhni tento banner tam, kde se mají oznámení z telefonu zobrazovat.</translation>
     </message>
     <message>
         <source>Reply sent</source>
@@ -677,6 +701,18 @@
     <message>
         <source>Phones don&apos;t reconnect to a computer on their own, so Continuity reconnects the paired phone whenever it&apos;s nearby, like a car kit does.</source>
         <translation>Telefony se k počítači samy znovu nepřipojují, proto Continuity připojí spárovaný telefon, kdykoli je poblíž – stejně jako to dělá autorádio.</translation>
+    </message>
+    <message>
+        <source>Show phone notifications as banners</source>
+        <translation>Zobrazovat oznámení z telefonu jako bannery</translation>
+    </message>
+    <message>
+        <source>Notifications from apps on the phone slide in like texts do, and KDE Connect&apos;s own popups are turned off so nothing shows twice. Show a test banner and drag it to where banners should appear.</source>
+        <translation>Oznámení z aplikací v telefonu se zobrazí stejně jako zprávy a vlastní vyskakovací oznámení KDE Connect se vypnou, aby se nic nezobrazovalo dvakrát. Zobraz si testovací banner a přetáhni ho tam, kde se mají bannery objevovat.</translation>
+    </message>
+    <message>
+        <source>Test Notification</source>
+        <translation>Testovací oznámení</translation>
     </message>
     <message>
         <source>Message sound</source>

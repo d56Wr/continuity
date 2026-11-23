@@ -11,6 +11,7 @@ Rectangle {
     border.color: Theme.separator
     border.width: 1
     property bool replying: false
+    property bool showApp: true   // false inside an app group (the group header names the app)
 
     HoverHandler { id: hover }
 
@@ -25,6 +26,7 @@ Rectangle {
 
         RowLayout {
             Layout.fillWidth: true
+            visible: root.showApp
             spacing: 8
             Item {
                 Layout.preferredWidth: 20; Layout.preferredHeight: 20
@@ -63,6 +65,7 @@ Rectangle {
 
         Label {
             Layout.fillWidth: true
+            Layout.rightMargin: root.showApp ? 0 : 22
             visible: model.title !== ""
             text: model.title
             font.weight: Font.DemiBold
@@ -105,5 +108,16 @@ Rectangle {
                 }
             }
         }
+    }
+
+    // dismiss when the app header row is hidden
+    IconButton {
+        visible: !root.showApp && model.dismissable
+        anchors.top: parent.top; anchors.right: parent.right; anchors.margins: 8
+        size: 24
+        iconName: "window-close-symbolic"
+        tip: qsTr("Dismiss on phone")
+        opacity: hover.hovered ? 1 : 0.35
+        onClicked: phone.dismiss(model.nid)
     }
 }

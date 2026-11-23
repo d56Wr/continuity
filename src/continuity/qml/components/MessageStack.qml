@@ -4,8 +4,9 @@ import QtQuick.Effects
 import QtQuick.Layouts
 import org.kde.kirigami as Kirigami
 
-// Stack of incoming-message banners (macOS style): click to open the conversation,
-// "Reply" to answer inline, "Copy code" for one-time security codes. Newest on top, max 3.
+// Stack of banners (macOS style) for texts and other phone notifications: click to open the
+// conversation / notification list, "Reply" to answer inline, "Copy code" for one-time security
+// codes. Newest on top, max 3; a newer banner from the same conversation or app replaces the older.
 Item {
     id: root
     width: 380
@@ -18,11 +19,14 @@ Item {
 
     ListModel { id: banners }
 
+    property bool growUp: false        // newest at the bottom (banners placed low on the screen)
+
     function push(m) {
         for (let i = 0; i < banners.count; i++)
             if (banners.get(i).threadId === m.threadId) { banners.remove(i); break }
-        banners.insert(0, m)
-        while (banners.count > 3) banners.remove(banners.count - 1)
+        // the newest banner sits next to the screen edge the window is attached to
+        if (growUp) banners.append(m); else banners.insert(0, m)
+        while (banners.count > 3) banners.remove(growUp ? 0 : banners.count - 1)
     }
     function removeId(id) {
         for (let i = 0; i < banners.count; i++)
@@ -48,6 +52,10 @@ Item {
                 required property string initials
                 required property string color
                 required property string code
+                required property string kind    // "message", "notification" or "test"
+                required property string nid     // phone notification id (kind "notification")
+                required property string app
+                required property bool canReply
                 property bool replying: false
                 property bool copied: false
                 property bool sent: false
@@ -56,9 +64,14 @@ Item {
                 onReplyingChanged: root.interacting = replying
 
                 function close() { root.interacting = false; root.removeId(id) }
+                // handled (code copied / replied): read on the phone, notification cleared
+                function done() {
+                    if (kind === "message") phone.markBannerRead(id, threadId, body)
+                    else if (kind === "notification") phone.dismiss(nid)
+                }
 
                 Timer {   // fade out unless the user is busy with it
-                    interval: banner.code !== "" ? 30000 : 9000
+                    interval: banner.code !== "" || banner.kind === "test" ? 30000 : 9000
                     running: !hover.hovered && !banner.replying
                     onTriggered: banner.close()
                 }
@@ -90,7 +103,12 @@ Item {
                             root.dragBy(Math.round(dx), Math.round(dy))
                         }
                         onReleased: moved ? root.dragFinished() : null
-                        onClicked: if (!moved) { phone.showThread(banner.threadId); banner.close() }
+                        onClicked: {
+                            if (moved) return
+                            if (banner.kind === "message") phone.showThread(banner.threadId)
+                            else if (banner.kind === "notification") phone.showNotifications()
+                            banner.close()
+                        }
                     }
 
                     ColumnLayout {
@@ -116,7 +134,13 @@ Item {
                                         color: Theme.text
                                         elide: Text.ElideRight
                                     }
-                                    Label { text: qsTr("now"); color: Theme.secondary; font.pointSize: Theme.fontSize * 0.85 }
+                                    Label {
+                                        text: banner.app !== "" ? banner.app + " · " + qsTr("now") : qsTr("now")
+                                        color: Theme.secondary
+                                        font.pointSize: Theme.fontSize * 0.85
+                                        elide: Text.ElideRight
+                                        Layout.maximumWidth: 150
+                                    }
                                 }
                                 Label {
                                     Layout.fillWidth: true
@@ -148,7 +172,7 @@ Item {
                                 primary: !banner.copied
                                 onClicked: {
                                     phone.copySilently(banner.code)
-                                    phone.markBannerRead(banner.id, banner.threadId, banner.body)
+                                    banner.done()
                                     banner.copied = true
                                     closeSoon.restart()
                                 }
@@ -172,8 +196,9 @@ Item {
                                 onAccepted: send()
                                 function send() {
                                     if (text.trim() === "") return
-                                    phone.replyToThread(banner.threadId, text)
-                                    phone.markBannerRead(banner.id, banner.threadId, banner.body)
+                                    if (banner.kind === "notification") phone.replyNotification(banner.nid, text)
+                                    else phone.replyToThread(banner.threadId, text)
+                                    banner.done()
                                     text = ""
                                     banner.replying = false
                                     banner.sent = true
@@ -188,7 +213,7 @@ Item {
                         }
 
                         RowLayout {
-                            visible: !banner.replying && !banner.sent && (hover.hovered || banner.code !== "")
+                            visible: banner.canReply && !banner.replying && !banner.sent && (hover.hovered || banner.code !== "")
                             Layout.fillWidth: true
                             spacing: 8
                             Item { Layout.fillWidth: true }

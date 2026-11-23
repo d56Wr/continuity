@@ -391,3 +391,41 @@ class KDEConnect:
             self.device.refresh()
         else:
             self._listener("device", None)
+
+
+# ---------------------------------------------------------------- KDE Connect's own popups
+NOTIFYRC = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "kdeconnect.notifyrc"
+
+
+def set_desktop_popups(notifications: bool, calls: bool) -> None:
+    """Turn kdeconnectd's own desktop popups for phone notifications / incoming calls on or off
+    (Continuity shows its own banners instead). Writes the same file as System Settings ›
+    Notifications › KDE Connect and asks running apps to reload it."""
+    cfg = configparser.ConfigParser(interpolation=None, strict=False)
+    cfg.optionxform = str
+    try:
+        cfg.read(NOTIFYRC, encoding="utf-8")
+    except configparser.Error as e:
+        log.warning("can't read %s: %s", NOTIFYRC, e)
+        return
+    changed = False
+    for event, on in (("notification", notifications), ("callReceived", calls)):
+        sec = f"Event/{event}"
+        if on:
+            # only undo our own "no action" (an empty Action), never what the user set
+            if cfg.has_option(sec, "Action") and cfg.get(sec, "Action") == "":
+                cfg.remove_option(sec, "Action")
+                if not cfg.options(sec):
+                    cfg.remove_section(sec)
+                changed = True
+        elif not (cfg.has_option(sec, "Action") and cfg.get(sec, "Action") == ""):
+            if not cfg.has_section(sec):
+                cfg.add_section(sec)
+            cfg.set(sec, "Action", "")
+            changed = True
+    if not changed:
+        return
+    with open(NOTIFYRC, "w", encoding="utf-8") as f:
+        cfg.write(f, space_around_delimiters=False)
+    dbus.bus().emit_signal(None, "/Config", "org.kde.knotification", "reparseConfiguration",
+                           GLib.Variant("(s)", ("kdeconnect",)))

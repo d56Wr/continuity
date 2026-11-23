@@ -7,11 +7,11 @@ import time
 from datetime import datetime
 
 from PySide6.QtCore import QDateTime, QLocale, QObject, QTimer, QUrl, Property, Signal, Slot
-from PySide6.QtGui import QGuiApplication
+from PySide6.QtGui import QGuiApplication, QRegion
 from gi.repository import GLib
 
 from .core.contacts import ContactBook, number_key
-from .core.kdeconnect import KDEConnect, Message, PhoneNotification, TYPE_FAILED, TYPE_OUTBOX, TYPE_QUEUED
+from .core.kdeconnect import KDEConnect, set_desktop_popups, Message, PhoneNotification, TYPE_FAILED, TYPE_OUTBOX, TYPE_QUEUED
 from .core.bluetooth import BluetoothReconnect
 from .core.telephony import IN_PROGRESS, RINGING, AudioRoute, Telephony
 from .models import DictListModel, FilterHelper
@@ -42,6 +42,8 @@ class Phone(QObject):
     toast = Signal(str)
     showWindowRequested = Signal()
     messageArrived = Signal("QVariantMap")   # incoming SMS/RCS for the floating banner
+    notificationsRequested = Signal()        # notification banner clicked: show the list
+    notificationSettingsChanged = Signal()
     openThreadRequested = Signal(str)        # banner clicked: show this conversation
     mediaChanged = Signal()
     clipboardChanged = Signal()
@@ -59,7 +61,8 @@ class Phone(QObject):
             ["uid", "body", "outgoing", "time", "dayLabel", "showDay", "status", "images", "attachmentCount",
              "groupStart", "groupEnd", "sender", "showSender", "reactions", "receipt"], key="uid", parent=self)
         self._notifications = DictListModel(
-            ["nid", "app", "title", "text", "icon", "dismissable", "canReply", "isConversation"],
+            ["nid", "app", "title", "text", "icon", "dismissable", "canReply", "isConversation",
+             "groupIndex", "groupCount", "groupDismissable"],
             key="nid", parent=self)
         self._contacts = DictListModel(["name", "number", "avatar", "initials", "color"], parent=self)
         self._contact_filter = FilterHelper(self._contacts, lambda r, q: q in r["name"].casefold()
@@ -103,6 +106,11 @@ class Phone(QObject):
                                      lambda: self.dev.name if self.dev else "",
                                      lambda: bool(self.dev and self.dev.reachable))
         self.bt.enabled = bool(settings.get("bluetoothReconnect", True))
+        self._phone_banners = bool(settings.get("phoneBanners", True))
+        self._reachable_since = 0.0
+        self._recent_bodies: list[str] = []  # message texts just shown as banners
+        self._popups_state = None
+        self._apply_kc_popups()
         self._clock = QTimer(self, interval=1000, timeout=self._tick)
         self._clock.start()
         self._threads_dirty = QTimer(self, singleShot=True, interval=150, timeout=self._rebuild_threads)
@@ -178,6 +186,7 @@ class Phone(QObject):
             reachable = bool(dev and dev.reachable)
             if reachable and not self._was_reachable:
                 self.bt.poke()  # the phone is nearby again: bring up calls too
+                self._reachable_since = time.monotonic()
             self._was_reachable = reachable
             self.deviceChanged.emit()
         elif kind == "threads":
@@ -201,6 +210,8 @@ class Phone(QObject):
         elif kind == "incoming_sms":
             if not self._gm_mode:  # with Google Messages paired the helper announces it
                 self._announce_kc(payload)
+        elif kind == "notification_posted":
+            self._banner_notification(payload)
         elif kind == "media":
             self.mediaChanged.emit()
         elif kind == "clipboard":
@@ -839,14 +850,100 @@ class Phone(QObject):
 
     # ================================================================ notifications
     def _rebuild_notifications(self) -> None:
-        rows = []
+        # grouped by app like on the phone: apps ordered by their newest notification,
+        # newest first inside each app
+        groups: dict[str, list] = {}
         if self.dev:
             for n in reversed(list(self.dev.notifications.values())):
-                rows.append({"nid": n.id, "app": n.app, "title": n.title, "text": n.text,
+                groups.setdefault(n.app or "?", []).append(n)
+        rows = []
+        for app, items in groups.items():
+            group_dismissable = any(n.dismissable for n in items)
+            for i, n in enumerate(items):
+                rows.append({"nid": n.id, "app": app, "title": n.title, "text": n.text,
                              "icon": QUrl.fromLocalFile(n.icon).toString() if n.icon else "",
                              "dismissable": n.dismissable, "canReply": bool(n.reply_id),
-                             "isConversation": n.is_conversation})
+                             "isConversation": n.is_conversation, "groupIndex": i,
+                             "groupCount": len(items), "groupDismissable": group_dismissable})
         self._notifications.set_rows(rows)
+
+    @Slot(str)
+    def dismissGroup(self, app: str) -> None:
+        if self.dev:
+            for nid, n in list(self.dev.notifications.items()):
+                if (n.app or "?") == app and n.dismissable:
+                    self.dev.dismiss(nid)
+
+    # ---------------------------------------------------------------- notification banners
+    MESSAGING_APPS = {"messages", "zprávy", "google messages", "zprávy google", "samsung messages",
+                      "message", "messaging", "sms", "nachrichten", "wiadomości", "správy"}
+
+    def _banner_notification(self, n: PhoneNotification) -> None:
+        if not self._phone_banners or n.silent or not (n.title or n.text):
+            return
+        if (n.app or "").casefold() in self.MESSAGING_APPS:
+            return  # texts get their own banner (with reply and conversation)
+        if time.monotonic() - self._reachable_since < 10:
+            return  # the phone re-sends everything it has when it reconnects
+        # wait a moment so a text announced by Google Messages can claim it first
+        QTimer.singleShot(1500, lambda nid=n.id: self._show_notification_banner(nid))
+
+    def _show_notification_banner(self, nid: str) -> None:
+        n = self.dev.notifications.get(nid) if self.dev else None
+        if n is None:
+            return  # already gone on the phone
+        norm = lambda t: " ".join((t or "").split())
+        text = norm(n.text)
+        if text and any(text in b or b in text for b in self._recent_bodies):
+            return
+        self._banner_dict({
+            "id": "n" + nid, "threadId": "n:" + (n.app or "?"), "kind": "notification", "nid": nid,
+            "app": n.app, "canReply": bool(n.reply_id), "title": n.title or n.app, "body": n.text or n.ticker,
+            "avatar": QUrl.fromLocalFile(n.icon).toString() if n.icon else "",
+            "initials": (n.app or "?")[:1].upper(), "color": _avatar_color(n.app or "?"),
+            "code": otp.find_code(f"{n.title} {n.text}"),
+        })
+
+    def _banner_dict(self, d: dict) -> None:
+        base = {"kind": "message", "nid": "", "app": "", "canReply": True, "code": ""}
+        self.messageArrived.emit({**base, **d})
+
+    @Slot()
+    def testBanner(self) -> None:
+        """A sample banner to see (and drag into place) where banners appear."""
+        self._banner_dict({
+            "id": f"test{time.monotonic()}", "threadId": "test", "kind": "test", "app": "Continuity",
+            "canReply": False, "title": self.tr("Test notification"),
+            "body": self.tr("Drag this banner to where phone notifications should appear."),
+            "avatar": "", "initials": "C", "color": "#007aff",
+        })
+
+    @Slot()
+    def showNotifications(self) -> None:
+        self.showWindowRequested.emit()
+        self.notificationsRequested.emit()
+
+    @Property(bool, notify=notificationSettingsChanged)
+    def phoneBanners(self):
+        return self._phone_banners
+
+    @phoneBanners.setter
+    def phoneBanners(self, on: bool):
+        if on == self._phone_banners:
+            return
+        self._phone_banners = on
+        settings.set("phoneBanners", on)
+        self._apply_kc_popups()
+        self.notificationSettingsChanged.emit()
+
+    def _apply_kc_popups(self, restore: bool = False) -> None:
+        """While Continuity shows phone notifications (and calls, when Bluetooth calling works)
+        itself, silence KDE Connect's own duplicate popups."""
+        ours = self._phone_banners and not restore
+        state = (not ours, not (ours and self.tel.available))
+        if state != self._popups_state:
+            self._popups_state = state
+            set_desktop_popups(*state)
 
     @Slot(str)
     def dismiss(self, nid: str) -> None:
@@ -903,10 +1000,11 @@ class Phone(QObject):
         if mid in self._bannered:
             return
         self._bannered = (self._bannered + [mid])[-100:]
+        self._recent_bodies = (self._recent_bodies + [" ".join(body.split())])[-20:]
         self.sounds.play_message()
         if self._thread_visible(tid):
             return
-        self.messageArrived.emit({
+        self._banner_dict({
             "id": mid, "threadId": tid, "title": title, "body": body, "avatar": avatar,
             "initials": initials, "color": color, "code": otp.find_code(body),
         })
@@ -1139,6 +1237,7 @@ class Phone(QObject):
             self.sounds.ring()
         else:
             self.sounds.stop_ring()
+        self._apply_kc_popups()  # calling over Bluetooth may have come or gone
         self.callChanged.emit()
 
     def _call(self):
@@ -1210,6 +1309,12 @@ class Phone(QObject):
         v = (settings.get("placement", {}) or {}).get(key)
         return v if isinstance(v, dict) else {}
 
+    @Slot(QObject, int, int, int, int)
+    def setInputRegion(self, window, x: int, y: int, w: int, h: int) -> None:
+        """Let clicks through a full-screen overlay everywhere except this rectangle."""
+        if hasattr(window, "setMask"):
+            window.setMask(QRegion(x, y, max(1, w), max(1, h)))
+
     @Slot(str, "QVariantMap")
     def saveWindowPlacement(self, key: str, value: dict) -> None:
         placement = dict(settings.get("placement", {}) or {})
@@ -1270,5 +1375,6 @@ class Phone(QObject):
 
     def shutdown(self) -> None:
         self.sounds.stop_ring()
+        self._apply_kc_popups(restore=True)
         self.tel.shutdown()
         self.gm.stop()

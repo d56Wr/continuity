@@ -39,11 +39,12 @@ screen, reply to a text without leaving your game, and paste a login code straig
 | 🎵 **Now Playing** | See and control what's playing on the phone: artwork, seek bar, play/pause, next/previous, and switching between player apps. |
 | 📋 **Clipboard** | Text you copy on the computer appears on the phone. You can also send the clipboard on demand. |
 | 📱 **Phone** | Battery and signal, *Find My Phone*, send files by drag and drop (like AirDrop), browse phone storage, sync contacts. |
-| 🔔 **Notifications** | Everything that shows up on the phone, with quick replies, *dismiss on the phone* and *Clear All*. |
+| 🔔 **Notifications** | Everything that shows up on the phone, **grouped by app** like on the phone (expand, collapse or clear a whole group), with quick replies and *dismiss on the phone*. New ones slide in as banners just like texts, and KDE Connect's own popups are switched off so nothing shows up twice. |
 | 🧩 **Desktop** | Unread badge on the dock or taskbar icon, tray icon, runs in the background, starts at login, follows **light and dark mode** live. English and Czech UI. |
 
-Both floating windows (calls and message banners) can be dragged anywhere and remember where you
-left them.
+Both floating windows (calls and banners) can be dragged anywhere and stick to the nearest screen
+corner. Banners placed in the bottom half stack upwards. Use *Test Notification* on the **Phone**
+page to place them.
 
 <p align="center">
   <picture>

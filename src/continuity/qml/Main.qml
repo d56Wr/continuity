@@ -61,5 +61,6 @@ ApplicationWindow {
     Connections {
         target: phone
         function onOpenThreadRequested(tid) { win.page = 0; messages.openConversation(tid) }
+        function onNotificationsRequested() { win.page = 2 }
     }
 }
