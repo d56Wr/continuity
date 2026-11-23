@@ -82,6 +82,12 @@ class PhoneNotification:
     reply_id: str = ""
     silent: bool = False
     is_conversation: bool = False
+    key: str = ""  # Android's notification key ("0|com.google.android.gm|…"), for actions
+
+    @property
+    def package(self) -> str:
+        parts = self.key.split("|")
+        return parts[1] if len(parts) > 1 else ""
 
 
 Listener = Callable[[str, object], None]
@@ -249,7 +255,8 @@ class Device:
             id=nid, app=p.get("appName", ""), title=p.get("title", ""), text=p.get("text", ""),
             ticker=p.get("ticker", ""), icon=p.get("iconPath", "") if p.get("hasIcon") else "",
             dismissable=bool(p.get("dismissable", True)), reply_id=p.get("replyId", ""),
-            silent=bool(p.get("silent", False)), is_conversation=bool(p.get("isConversation", False)))
+            silent=bool(p.get("silent", False)), is_conversation=bool(p.get("isConversation", False)),
+            key=p.get("internalId", ""))
 
     def _on_notification_signal(self, path, sig, args) -> None:
         if sig in ("notificationPosted", "notificationUpdated"):
@@ -288,6 +295,14 @@ class Device:
     def reply_notification(self, nid: str, text: str) -> None:
         dbus.call_async(SVC, f"{self.path}/notifications/{nid}", NOTIF_ITEM_IF, "sendReply",
                         GLib.Variant("(s)", (text,)))
+
+    def send_action(self, nid: str, action: str) -> None:
+        """Tap a notification's action button on the phone, by its title (e.g. "Delete").
+        The phone ignores titles the notification doesn't have."""
+        n = self.notifications.get(nid)
+        if n and n.key:
+            dbus.call_async(SVC, self.path + "/notifications", NOTIF_IF, "sendAction",
+                            GLib.Variant("(ss)", (n.key, action)))
 
     # ------------------------------------------------------------ media on the phone
     def _load_media(self) -> None:

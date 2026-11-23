@@ -88,8 +88,15 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             Layout.topMargin: 4
-            visible: model.canReply
+            visible: model.canReply || model.canDelete
             spacing: 8
+            Item { Layout.fillWidth: true; visible: !root.replying }
+            Button {   // an email: delete it on the phone (Gmail's notification button)
+                visible: model.canDelete && !root.replying
+                text: qsTr("Delete")
+                flat: true
+                onClicked: phone.deleteNotificationItem(model.nid)
+            }
             TextField {
                 id: reply
                 Layout.fillWidth: true
@@ -100,6 +107,7 @@ Rectangle {
                 Keys.onEscapePressed: root.replying = false
             }
             Button {
+                visible: model.canReply
                 text: root.replying ? qsTr("Send") : qsTr("Reply")
                 flat: !root.replying
                 onClicked: {

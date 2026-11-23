@@ -266,6 +266,10 @@
         <translation>Odpovědět</translation>
     </message>
     <message>
+        <source>Delete</source>
+        <translation>Smazat</translation>
+    </message>
+    <message>
         <source>Mark as Read</source>
         <translation>Označit jako přečtené</translation>
     </message>
@@ -349,6 +353,10 @@
     <message>
         <source>Dismiss on phone</source>
         <translation>Zavřít na telefonu</translation>
+    </message>
+    <message>
+        <source>Delete</source>
+        <translation>Smazat</translation>
     </message>
     <message>
         <source>Reply…</source>

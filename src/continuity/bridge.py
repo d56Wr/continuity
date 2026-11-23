@@ -61,7 +61,7 @@ class Phone(QObject):
             ["uid", "body", "outgoing", "time", "dayLabel", "showDay", "status", "images", "attachmentCount",
              "groupStart", "groupEnd", "sender", "showSender", "reactions", "receipt"], key="uid", parent=self)
         self._notifications = DictListModel(
-            ["nid", "app", "title", "text", "icon", "dismissable", "canReply", "isConversation",
+            ["nid", "app", "title", "text", "icon", "dismissable", "canReply", "canDelete", "isConversation",
              "groupIndex", "groupCount", "groupDismissable"],
             key="nid", parent=self)
         self._contacts = DictListModel(["name", "number", "avatar", "initials", "color"], parent=self)
@@ -864,6 +864,7 @@ class Phone(QObject):
                              "icon": QUrl.fromLocalFile(n.icon).toString() if n.icon else "",
                              "dismissable": n.dismissable, "canReply": bool(n.reply_id),
                              "isConversation": n.is_conversation, "groupIndex": i,
+                             "canDelete": n.package in self.DELETABLE_APPS,
                              "groupCount": len(items), "groupDismissable": group_dismissable})
         self._notifications.set_rows(rows)
 
@@ -898,14 +899,15 @@ class Phone(QObject):
             return
         self._banner_dict({
             "id": "n" + nid, "threadId": "n:" + (n.app or "?"), "kind": "notification", "nid": nid,
-            "app": n.app, "canReply": bool(n.reply_id), "title": n.title or n.app, "body": n.text or n.ticker,
+            "app": n.app, "canReply": bool(n.reply_id), "canDelete": n.package in self.DELETABLE_APPS,
+            "title": n.title or n.app, "body": n.text or n.ticker,
             "avatar": QUrl.fromLocalFile(n.icon).toString() if n.icon else "",
             "initials": (n.app or "?")[:1].upper(), "color": _avatar_color(n.app or "?"),
             "code": otp.find_code(f"{n.title} {n.text}"),
         })
 
     def _banner_dict(self, d: dict) -> None:
-        base = {"kind": "message", "nid": "", "app": "", "canReply": True, "code": ""}
+        base = {"kind": "message", "nid": "", "app": "", "canReply": True, "canDelete": False, "code": ""}
         self.messageArrived.emit({**base, **d})
 
     @Slot()
@@ -965,6 +967,20 @@ class Phone(QObject):
     def dismissAll(self) -> None:
         if self.dev:
             self.dev.dismiss_all()
+
+    # Gmail's notification button is "Delete" when that is the default notification action in
+    # Gmail's settings (else "Archive"). KDE Connect doesn't tell us the buttons, so we tap
+    # "Delete" by its title in the languages we know; the phone ignores the ones it doesn't have.
+    DELETE_TITLES = ("Delete", "Smazat", "Odstrániť", "Löschen", "Usuń", "Supprimer", "Eliminar",
+                     "Elimina", "Excluir", "Verwijderen", "Törlés", "Видалити", "Удалить")
+    DELETABLE_APPS = ("com.google.android.gm",)
+
+    @Slot(str)
+    def deleteNotificationItem(self, nid: str) -> None:
+        """Delete what the notification is about (an email) using its button on the phone."""
+        if self.dev:
+            for title in self.DELETE_TITLES:
+                self.dev.send_action(nid, title)
 
     @Slot(str, str)
     def replyNotification(self, nid: str, text: str) -> None:

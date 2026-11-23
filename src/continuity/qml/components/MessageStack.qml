@@ -56,6 +56,7 @@ Item {
                 required property string nid     // phone notification id (kind "notification")
                 required property string app
                 required property bool canReply
+                required property bool canDelete   // an email: delete it on the phone
                 property bool replying: false
                 property bool copied: false
                 property bool sent: false
@@ -226,6 +227,11 @@ Item {
                             Layout.fillWidth: true
                             spacing: 8
                             Item { Layout.fillWidth: true }
+                            PillButton {
+                                visible: banner.canDelete
+                                text: qsTr("Delete")
+                                onClicked: { phone.deleteNotificationItem(banner.nid); banner.close() }
+                            }
                             PillButton {   // texts: read (also on the phone); app notifications: clear on the phone
                                 text: banner.kind === "message" ? qsTr("Mark as Read") : qsTr("Clear")
                                 onClicked: { banner.done(); banner.close() }
