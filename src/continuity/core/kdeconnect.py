@@ -398,9 +398,10 @@ NOTIFYRC = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / 
 
 
 def set_desktop_popups(notifications: bool, calls: bool) -> None:
-    """Turn kdeconnectd's own desktop popups for phone notifications / incoming calls on or off
-    (Continuity shows its own banners instead). Writes the same file as System Settings ›
-    Notifications › KDE Connect and asks running apps to reload it."""
+    """Turn kdeconnectd's own desktop popups on or off: phone notifications and missed calls
+    (`notifications`), incoming calls (`calls`). Continuity shows its own banners instead.
+    Writes the same file as System Settings › Notifications › KDE Connect and asks running
+    apps to reload it."""
     cfg = configparser.ConfigParser(interpolation=None, strict=False)
     cfg.optionxform = str
     try:
@@ -409,7 +410,8 @@ def set_desktop_popups(notifications: bool, calls: bool) -> None:
         log.warning("can't read %s: %s", NOTIFYRC, e)
         return
     changed = False
-    for event, on in (("notification", notifications), ("callReceived", calls)):
+    # a missed call also shows up as the phone app's own notification, which Continuity shows as a banner
+    for event, on in (("notification", notifications), ("missedCall", notifications), ("callReceived", calls)):
         sec = f"Event/{event}"
         if on:
             # only undo our own "no action" (an empty Action), never what the user set

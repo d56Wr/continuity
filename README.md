@@ -4,15 +4,21 @@
 
 <p align="center">
   <b>Your Android phone on the Linux desktop.</b><br>
-  Texts, calls, notifications and more in one polished window, in the spirit of macOS Continuity.
+  Texts, calls and notifications in one polished app, in the spirit of macOS Continuity.
 </p>
 
 <p align="center">
   <img alt="Platform: Linux" src="https://img.shields.io/badge/platform-Linux-1793d1?logo=linux&logoColor=white">
   <img alt="Desktop: KDE Plasma 6" src="https://img.shields.io/badge/desktop-KDE%20Plasma%206-1d99f3?logo=kde&logoColor=white">
   <img alt="Qt 6 / QML" src="https://img.shields.io/badge/Qt%206-QML-41cd52?logo=qt&logoColor=white">
-  <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-3776ab?logo=python&logoColor=white">
   <img alt="License: GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-blue">
+</p>
+
+<p align="center">
+  <a href="#-install">Install</a> ·
+  <a href="#-features">Features</a> ·
+  <a href="#-phone-setup">Phone setup</a> ·
+  <a href="#-more">More</a>
 </p>
 
 <p align="center">
@@ -22,48 +28,86 @@
   </picture>
 </p>
 
-Linux can already do a lot with an Android phone. KDE Connect syncs texts and notifications,
-PipeWire can act as a Bluetooth car kit, and Google Messages speaks RCS. **Continuity** puts all
-of that behind one clean, macOS-style interface. You can answer a call from the corner of your
-screen, reply to a text without leaving your game, and paste a login code straight from an SMS.
-
 ## ✨ Features
 
-| | |
-|---|---|
-| 💬 **Messages** | **SMS and RCS** (chats with iPhones included) via Google Messages: full history, replies and new conversations, photos and files, reactions, *Sent / Delivered / Read*, green SMS vs blue RCS bubbles, an unread filter and local *mark as unread*. Falls back to SMS/MMS over KDE Connect when Google Messages isn't paired. |
-| 🔔 **Message banners** | New messages slide in at the top-right corner, even when the window is hidden. **Reply inline** without opening the app, or click to jump to the conversation. |
-| 🔑 **Security codes** | One-time codes ("G-482913 is your verification code") are detected automatically and shown big with a **Copy Code** button. Amounts, dates and phone numbers are ignored. Copying the code (or replying) marks the message as read and clears its notification on the phone. |
-| 🔊 **Sounds** | A sound for new messages and a ringtone that rings until you answer. Pick from the desktop's sound themes, use your own file, or turn them off. Everything stays quiet in *Do Not Disturb*. |
-| 📞 **Calls** | A floating call window above everything, fullscreen apps included: caller name or number, **Answer / Decline**, then a live timer, **mute microphone**, **mute sound** and **hang up**. Call audio runs through your computer's mic and speakers or headset. Dial pad and contacts are built in. |
-| 🎵 **Now Playing** | See and control what's playing on the phone: artwork, seek bar, play/pause, next/previous, and switching between player apps. |
-| 📋 **Clipboard** | Text you copy on the computer appears on the phone. You can also send the clipboard on demand. |
-| 📱 **Phone** | Battery and signal, *Find My Phone*, send files by drag and drop (like AirDrop), browse phone storage, sync contacts. |
-| 🔔 **Notifications** | Everything that shows up on the phone, **grouped by app** like on the phone (expand, collapse or clear a whole group), with quick replies and *dismiss on the phone*. New ones slide in as banners just like texts, and KDE Connect's own popups are switched off so nothing shows up twice. |
-| 🧩 **Desktop** | Unread badge on the dock or taskbar icon, tray icon, runs in the background, starts at login, follows **light and dark mode** live. English and Czech UI. |
+- 💬 **Messages.** SMS and RCS through Google Messages, chats with iPhones included. Full
+  history, photos, reactions and read receipts.
+- 🔔 **Banners.** Texts and app notifications slide in at the corner of the screen. Reply right
+  there.
+- 🔑 **Security codes.** Login codes from texts get a **Copy Code** button.
+- 📞 **Calls.** Answer, decline and talk through the computer, with a floating call window.
+- 🗂 **Notifications.** Everything from the phone, grouped by app like on the phone.
+- 🎵 **Now Playing.** Control the music playing on the phone.
+- 📋 **Clipboard and files.** Copy here, paste on the phone. Drag files over like AirDrop.
+- 🌗 **At home on the desktop.** Light and dark mode, an unread badge on the dock, a tray icon
+  and starting at login.
 
-Both floating windows (calls and banners) can be dragged anywhere and stick to the nearest screen
-corner. Banners placed in the bottom half stack upwards. Use *Test Notification* on the **Phone**
-page to place them.
+<table>
+  <tr>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/banners-dark.png">
+        <img src="docs/screenshots/banners-light.png" alt="Floating call window and banners">
+      </picture>
+      <p align="center"><sub>Call window and banners, drag them anywhere</sub></p>
+    </td>
+    <td width="50%">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/notifications-dark.png">
+        <img src="docs/screenshots/notifications-light.png" alt="Notifications grouped by app">
+      </picture>
+      <p align="center"><sub>Notifications grouped by app</sub></p>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2">
+      <picture>
+        <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phone-dark.png">
+        <img src="docs/screenshots/phone-light.png" alt="Phone page with Now Playing">
+      </picture>
+      <p align="center"><sub>Phone status, Now Playing and quick actions</sub></p>
+    </td>
+  </tr>
+</table>
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/banners-dark.png">
-    <img src="docs/screenshots/banners-light.png" width="860" alt="Floating call window and message banners">
-  </picture>
-</p>
+## 📦 Install
 
-<p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/phone-dark.png">
-    <img src="docs/screenshots/phone-light.png" width="860" alt="Phone page with Now Playing">
-  </picture>
-</p>
+**Arch Linux, CachyOS, EndeavourOS, Manjaro** — build and install it as a regular package:
 
-## 🛠 How it works
+```bash
+git clone https://github.com/d56Wr/continuity.git
+cd continuity/packaging/arch
+makepkg -si
+```
 
-Continuity is a front end over three well-established pieces. It doesn't run a server or
-a cloud service of its own.
+**Any other distribution** — the install script checks what's missing, offers to install it
+(Arch and Fedora) and sets Continuity up for your user, without root:
+
+```bash
+git clone https://github.com/d56Wr/continuity.git
+cd continuity
+./install.sh
+```
+
+Then open **Continuity** from the app menu. To update, run `git pull` and install again.
+To remove it, run `./install.sh --uninstall` (or `sudo pacman -R continuity-git`).
+
+## 📲 Phone setup
+
+1. **KDE Connect.** Install [KDE Connect](https://play.google.com/store/apps/details?id=org.kde.kdeconnect_tp)
+   on the phone and pair it with the computer. Allow SMS, phone, contacts and notifications.
+2. **Calls.** Pair the phone with the computer over **Bluetooth**. Continuity reconnects it by
+   itself whenever the phone is nearby.
+3. **RCS (optional).** On the **Phone** page click *Sign in with Google* and confirm the emoji in
+   Google Messages on the phone.
+
+## 📖 More
+
+<details>
+<summary><b>How it works</b></summary>
+
+Continuity is a front end over three well-established pieces. It has no server or cloud
+service of its own.
 
 ```
  ┌─────────────┐   Wi-Fi · KDE Connect     ┌─────────────┐  D-Bus  ┌──────────────┐
@@ -75,62 +119,32 @@ a cloud service of its own.
  └─────────────┘                           └─────────────┘         └──────────────┘
 ```
 
-- **[KDE Connect](https://kdeconnect.kde.org/)** (Wi-Fi) handles messages, contacts,
-  notifications, battery, files, clipboard and media control. Continuity talks to the
-  running `kdeconnectd` over D-Bus.
-- **Bluetooth Hands-Free (HFP) via PipeWire.** The computer acts like a car kit for the phone.
-  PipeWire ≥ 1.2 exposes calls on D-Bus (`org.pipewire.Telephony`). Continuity answers,
-  declines and dials through it and routes call audio with `pw-loopback`.
+- **[KDE Connect](https://kdeconnect.kde.org/)** (Wi-Fi) brings texts, contacts, notifications,
+  battery, files, clipboard and media control.
+- **Bluetooth Hands-Free via PipeWire** makes the computer a car kit for the phone. PipeWire ≥ 1.2
+  exposes calls on D-Bus (`org.pipewire.Telephony`).
 - **Google Messages for Web** (SMS + RCS) runs through a small Go helper built on
-  [libgm](https://github.com/mautrix/gmessages) from mautrix-gmessages (`helper/gmessages`).
-  You pair it once with your Google account and confirm a matching emoji on the phone.
+  [libgm](https://github.com/mautrix/gmessages) (`helper/gmessages`).
 
-Floating windows use **wlr-layer-shell** (LayerShellQt) on Wayland, so they stay above other
-windows without stealing focus. Other sessions get an always-on-top window instead.
+The floating windows use **wlr-layer-shell** on Wayland, so they stay on top without stealing
+focus. While Continuity shows the phone's notifications, KDE Connect's own popups are turned
+off so nothing shows up twice.
+</details>
 
-## 📦 Requirements
+<details>
+<summary><b>Requirements</b></summary>
 
-- Linux with a session D-Bus (developed and tested on **KDE Plasma 6, Wayland**)
-- Python ≥ 3.11, **PySide6** ≥ 6.6, PyGObject, Kirigami, LayerShellQt
-- **KDE Connect** on the computer and the **KDE Connect** app on the phone
-  ([Play Store](https://play.google.com/store/apps/details?id=org.kde.kdeconnect_tp) /
-  [F-Droid](https://f-droid.org/packages/org.kde.kdeconnect_tp/))
-- *For calls:* a Bluetooth adapter, **PipeWire ≥ 1.2** with WirePlumber (`pw-loopback`, `pactl`)
-- *For RCS:* Go ≥ 1.22 to build the helper, plus a Chromium-based browser for the one-time sign-in
+- KDE Plasma 6 on Wayland (other desktops work, with fewer niceties)
+- Python ≥ 3.11, PySide6 ≥ 6.6, PyGObject, Kirigami, LayerShellQt
+- KDE Connect on the computer and on the phone
+- *Calls:* a Bluetooth adapter and PipeWire ≥ 1.2
+- *RCS:* Go ≥ 1.22 to build the helper
 
-On Arch Linux and derivatives:
+`install.sh` checks all of these for you.
+</details>
 
-```bash
-sudo pacman -S pyside6 python-gobject kirigami layer-shell-qt kdeconnect pipewire-pulse qt6-tools go
-```
-
-## 🚀 Install
-
-```bash
-git clone https://github.com/d56Wr/continuity.git
-cd continuity
-./scripts/install-dev.sh
-```
-
-The script builds the translations and the Google Messages helper. It also installs a
-`continuity` launcher into `~/.local/bin` and adds a menu entry. No root is needed, and the
-app runs straight from the cloned folder, so a `git pull` updates it.
-
-Start it from the app menu or with `continuity`. Turn on *Start at login* on the **Phone** page
-to keep it running in the tray.
-
-## 📲 Phone setup
-
-1. **KDE Connect.** Install the app, join the same network and pair it with the computer.
-   Grant SMS, phone, contacts and notification access, and enable the **Contacts
-   synchronizer** plugin so messages show names.
-2. **Calls.** Pair the phone with the computer over **Bluetooth** and allow **Calls** for it.
-   Leave *Media audio* off unless you want the phone's music on the computer.
-3. **RCS (optional).** On the **Phone** page click *Sign in with Google*, sign in, then tap the
-   matching emoji in Google Messages on the phone. Google Messages has to be the phone's
-   default SMS app.
-
-## ⌨️ Command line
+<details>
+<summary><b>Command line and shortcuts</b></summary>
 
 ```text
 continuity               open the window (or bring the running one to the front)
@@ -140,49 +154,55 @@ continuity --hangup      decline or hang up
 continuity --toggle-call answer if ringing, otherwise hang up
 ```
 
-The call commands are handy as global shortcuts or on a Stream Deck key.
+The call commands work well as global shortcuts or on a Stream Deck key.
+</details>
 
-## ⚙️ Configuration
+<details>
+<summary><b>Settings</b></summary>
 
-Settings live in `~/.config/continuity/settings.json`. Most of them are on the **Phone** page.
-Call audio uses the default speaker and microphone. To route it elsewhere, for example into
-a mixer channel, set `callSpeaker` / `callMicrophone` to a PipeWire node name.
+Most settings are on the **Phone** page: sounds, banners, clipboard sharing, Bluetooth
+reconnect, language and starting at login. Click *Test Notification* there and drag the banner
+to where banners should appear.
 
-## 🔒 Privacy
+Everything is stored in `~/.config/continuity/settings.json`. Call audio uses the default
+speaker and microphone. To route it elsewhere, set `callSpeaker` / `callMicrophone` to a
+PipeWire node name.
+</details>
 
-Everything stays on your machine. Messages and contacts travel between the phone and the
-computer over KDE Connect's encrypted local connection. The only outside connection is the
-Google Messages helper, which uses the same protocol as
-[messages.google.com](https://messages.google.com/web). Its session is stored in
-`~/.local/share/continuity/gmessages` with owner-only permissions.
+<details>
+<summary><b>Privacy</b></summary>
 
-## 🌍 Translations
+Everything stays on your machine. The phone and the computer talk over KDE Connect's encrypted
+local connection and Bluetooth. The only outside connection is the Google Messages helper,
+which uses the same protocol as [messages.google.com](https://messages.google.com/web). Its
+session is stored in `~/.local/share/continuity/gmessages`, readable only by you.
+</details>
 
-Strings live in `po/*.ts` (Qt Linguist). To add a language, add its code to
-`scripts/update-translations.sh`, run it, translate the new `.ts` file in Qt Linguist and run
-`scripts/build-translations.sh`. Pull requests are welcome.
+<details>
+<summary><b>Limitations</b></summary>
 
-## ⚠️ Limitations
+- Calls need Bluetooth. Over Wi-Fi alone, KDE Connect can only announce them.
+- Android doesn't let apps read the clipboard in the background. To send the phone's clipboard,
+  use *Send clipboard* in the KDE Connect notification on the phone.
+- RCS uses an **unofficial** client of Google's web protocol, which Google may change.
+- *Mark as unread* stays local. Google Messages has no such action.
+- No call history or voicemail yet.
+</details>
 
-- Calls need Bluetooth HFP. KDE Connect alone can only show and silence them.
-- Android doesn't let apps read the clipboard in the background. To send the phone's clipboard
-  to the computer, use *Send clipboard* in the KDE Connect notification or quick-settings tile.
-- RCS relies on an **unofficial** client of Google's web protocol, and Google may change it at
-  any time.
-- *Mark as unread* is local to Continuity. The Google Messages protocol has no such action.
-- Call history and voicemail aren't available.
+<details>
+<summary><b>Translations</b></summary>
 
-## 🙏 Credits
+The app is in English and Czech. Strings live in `po/*.ts` (Qt Linguist). To add a language,
+add its code to `scripts/update-translations.sh`, run it, translate the new file in Qt Linguist
+and send a pull request.
+</details>
+
+## 🙏 Credits and license
 
 Built on [KDE Connect](https://invent.kde.org/network/kdeconnect-kde),
 [PipeWire](https://pipewire.org/), [mautrix-gmessages / libgm](https://github.com/mautrix/gmessages),
 [Qt / PySide6](https://www.qt.io/qt-for-python), [Kirigami](https://develop.kde.org/frameworks/kirigami/)
 and [LayerShellQt](https://invent.kde.org/plasma/layer-shell-qt).
 
-## 📄 License
-
 **GPL-3.0-or-later.** The Google Messages helper in `helper/gmessages` is **AGPL-3.0-or-later**
-because libgm is.
-
-Continuity is an independent project and is not affiliated with Apple, Google or KDE.
-"macOS" and "Continuity" are used only to describe the idea.
+because libgm is. Continuity is an independent project, not affiliated with Apple, Google or KDE.

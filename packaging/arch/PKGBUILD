@@ -1,0 +1,44 @@
+# Maintainer: d56Wr <https://github.com/d56Wr>
+pkgname=continuity-git
+pkgver=r0
+pkgrel=1
+pkgdesc="Your Android phone on the Linux desktop: texts, calls and notifications, in the spirit of macOS Continuity"
+arch=(x86_64 aarch64)
+url="https://github.com/d56Wr/continuity"
+license=(GPL-3.0-or-later AGPL-3.0-or-later)
+depends=(python pyside6 python-gobject kirigami layer-shell-qt kdeconnect pipewire-audio libpulse)
+makedepends=(git go qt6-tools)
+provides=(continuity)
+conflicts=(continuity)
+source=("git+$url.git")
+sha256sums=(SKIP)
+
+pkgver() {
+  cd continuity
+  printf "r%s.%s" "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+build() {
+  cd continuity
+  scripts/build-translations.sh
+  cd helper/gmessages
+  export CGO_ENABLED=0 GOFLAGS="-trimpath -mod=readonly -modcacherw"
+  go build -o ../../build/continuity-gmessages .
+}
+
+package() {
+  cd continuity
+  local site
+  site="$(python -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+  install -d "$pkgdir$site"
+  cp -r src/continuity "$pkgdir$site/"
+  find "$pkgdir$site" -name __pycache__ -prune -exec rm -rf {} +
+  python -m compileall -q -s "$pkgdir" -p / "$pkgdir$site/continuity"
+
+  install -Dm755 build/continuity-gmessages "$pkgdir/usr/bin/continuity-gmessages"
+  printf '#!/bin/sh\nexec /usr/bin/python3 -m continuity "$@"\n' > continuity.sh
+  install -Dm755 continuity.sh "$pkgdir/usr/bin/continuity"
+  install -Dm644 data/continuity.desktop "$pkgdir/usr/share/applications/continuity.desktop"
+  install -Dm644 src/continuity/data/continuity.svg "$pkgdir/usr/share/icons/hicolor/scalable/apps/continuity.svg"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+}
