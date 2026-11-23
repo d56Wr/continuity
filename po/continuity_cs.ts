@@ -715,6 +715,22 @@
         <translation>Testovací oznámení</translation>
     </message>
     <message>
+        <source>Keep banners on screen</source>
+        <translation>Zobrazovat bannery</translation>
+    </message>
+    <message>
+        <source>Until closed</source>
+        <translation>Dokud je nezavřu</translation>
+    </message>
+    <message>
+        <source>%1 seconds</source>
+        <translation>%1 sekund</translation>
+    </message>
+    <message>
+        <source>1 minute</source>
+        <translation>1 minutu</translation>
+    </message>
+    <message>
         <source>Message sound</source>
         <translation>Zvuk zprávy</translation>
     </message>

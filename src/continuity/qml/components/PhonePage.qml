@@ -200,6 +200,21 @@ Flickable {
                         onClicked: phone.testBanner()
                     }
                 }
+                RowLayout {   // how long banners stay (calls stay for the whole call)
+                    Layout.fillWidth: true
+                    Layout.leftMargin: 6
+                    spacing: 8
+                    readonly property var choices: [5, 9, 15, 30, 60, 0]
+                    Label { text: qsTr("Keep banners on screen"); color: Theme.text; Layout.fillWidth: true }
+                    ComboBox {
+                        Layout.preferredWidth: 240
+                        model: parent.choices.map(s => s === 0 ? qsTr("Until closed")
+                                                               : s < 60 ? qsTr("%1 seconds").arg(s) : qsTr("1 minute"))
+                        currentIndex: Math.max(0, parent.choices.indexOf(phone.bannerSeconds))
+                        onActivated: (i) => phone.bannerSeconds = parent.choices[i]
+                    }
+                    Item { implicitWidth: 32 }   // line up with the sound pickers' play buttons
+                }
                 SoundPicker {
                     Layout.fillWidth: true
                     label: qsTr("Message sound")

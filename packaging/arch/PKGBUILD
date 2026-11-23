@@ -1,6 +1,6 @@
 # Maintainer: d56Wr <https://github.com/d56Wr>
 pkgname=continuity-git
-pkgver=r0
+pkgver=r16.2cc34f3
 pkgrel=1
 pkgdesc="Your Android phone on the Linux desktop: texts, calls and notifications, in the spirit of macOS Continuity"
 arch=(x86_64 aarch64)

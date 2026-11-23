@@ -1,0 +1,26 @@
+pkgbase = continuity-git
+	pkgdesc = Your Android phone on the Linux desktop: texts, calls and notifications, in the spirit of macOS Continuity
+	pkgver = r16.2cc34f3
+	pkgrel = 1
+	url = https://github.com/d56Wr/continuity
+	arch = x86_64
+	arch = aarch64
+	license = GPL-3.0-or-later
+	license = AGPL-3.0-or-later
+	makedepends = git
+	makedepends = go
+	makedepends = qt6-tools
+	depends = python
+	depends = pyside6
+	depends = python-gobject
+	depends = kirigami
+	depends = layer-shell-qt
+	depends = kdeconnect
+	depends = pipewire-audio
+	depends = libpulse
+	provides = continuity
+	conflicts = continuity
+	source = git+https://github.com/d56Wr/continuity.git
+	sha256sums = SKIP
+
+pkgname = continuity-git

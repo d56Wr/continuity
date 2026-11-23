@@ -5,3 +5,7 @@ __pycache__/
 /dist/
 *.egg-info/
 .venv/
+/packaging/arch/src/
+/packaging/arch/pkg/
+/packaging/arch/continuity/
+/packaging/arch/*.pkg.tar.*

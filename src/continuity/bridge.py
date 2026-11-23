@@ -923,6 +923,17 @@ class Phone(QObject):
         self.showWindowRequested.emit()
         self.notificationsRequested.emit()
 
+    @Property(int, notify=notificationSettingsChanged)
+    def bannerSeconds(self):
+        """How long a banner stays on screen (0 = until closed). Calls are not affected."""
+        return int(settings.get("bannerSeconds", 9))
+
+    @bannerSeconds.setter
+    def bannerSeconds(self, seconds: int):
+        if seconds != self.bannerSeconds:
+            settings.set("bannerSeconds", int(seconds))
+            self.notificationSettingsChanged.emit()
+
     @Property(bool, notify=notificationSettingsChanged)
     def phoneBanners(self):
         return self._phone_banners

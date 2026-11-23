@@ -70,9 +70,11 @@ Item {
                     else if (kind === "notification") phone.dismiss(nid)
                 }
 
-                Timer {   // fade out unless the user is busy with it
-                    interval: banner.code !== "" || banner.kind === "test" ? 30000 : 9000
-                    running: !hover.hovered && !banner.replying
+                Timer {   // fade out unless the user is busy with it (or banners stay until closed)
+                    // a code (or the test banner) stays at least 30 s, time enough to use it
+                    interval: banner.code !== "" || banner.kind === "test"
+                              ? Math.max(30, phone.bannerSeconds) * 1000 : phone.bannerSeconds * 1000
+                    running: phone.bannerSeconds > 0 && !hover.hovered && !banner.replying
                     onTriggered: banner.close()
                 }
                 Timer { id: closeSoon; interval: 1200; onTriggered: banner.close() }
