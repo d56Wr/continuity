@@ -60,6 +60,13 @@ Rectangle {
                         font.pointSize: Theme.fontSize * 0.85
                     }
                 }
+                // new messages in the open conversation stay unread until you say so (or reply)
+                PillButton {
+                    text: qsTr("Mark as Read")
+                    primary: true
+                    visible: phone.threadUnread
+                    onClicked: phone.markRead(phone.threadId)
+                }
                 IconButton {
                     iconName: "call-start-symbolic"
                     tip: qsTr("Call")

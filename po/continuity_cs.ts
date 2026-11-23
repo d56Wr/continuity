@@ -82,6 +82,10 @@
 <context>
     <name>ChatView</name>
     <message>
+        <source>Mark as Read</source>
+        <translation>Označit jako přečtené</translation>
+    </message>
+    <message>
         <source>Call</source>
         <translation>Volat</translation>
     </message>

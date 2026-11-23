@@ -304,8 +304,7 @@ class Phone(QObject):
                 rows.append({
                     "threadId": "g" + c["id"], "title": title, "snippet": snippet,
                     "time": self._fmt_list_time(c.get("timestamp", 0)), "date": c.get("timestamp", 0),
-                    "unread": ("g" + c["id"]) in self._marked_unread
-                              or (bool(c.get("unread")) and "g" + c["id"] != self._thread_id),
+                    "unread": ("g" + c["id"]) in self._marked_unread or bool(c.get("unread")),
                     "avatar": self._photo(first) if first else "",
                     "initials": _initials(title) if len(others) == 1 else str(len(others)),
                     "color": c.get("color") or _avatar_color(title), "fromMe": bool(c.get("fromMe")),
@@ -420,6 +419,10 @@ class Phone(QObject):
     def threadIsRcs(self):
         c = self._gm_conv(self._thread_id)
         return bool(c and c.get("type") == "rcs")
+
+    @Property(bool, notify=threadChanged)
+    def threadUnread(self):
+        return any(r["unread"] for r in self._conv_filter.all if r["threadId"] == self._thread_id)
 
     @Property(int, notify=threadChanged)
     def unreadCount(self):
@@ -545,6 +548,8 @@ class Phone(QObject):
         text = text.strip()
         if not text:
             return
+        if self.threadUnread:
+            self.markRead(self._thread_id)
         c = self._gm_conv(self._thread_id)
         if c is not None:
             self.gm.request("send", lambda r, e: e and self.toast.emit(self.tr("Sending failed: %1").replace("%1", e)),
@@ -660,8 +665,6 @@ class Phone(QObject):
             bucket[data["id"]] = data
             if self._thread_id == "g" + cid:
                 self._thread_dirty.start()
-                if not data.get("fromMe") and not data.get("old") and self._window_active():
-                    self.gm.request("mark_read", None, conversation=cid, message=data["id"])
             if not data.get("fromMe") and not data.get("old") and not data.get("tmpId"):
                 self._announce_gm(cid, data)
         elif name == "pair_emoji":
@@ -897,10 +900,12 @@ class Phone(QObject):
 
     def _announce(self, mid: str, tid: str, title: str, body: str, avatar: str,
                   initials: str, color: str) -> None:
-        if mid in self._bannered or self._thread_visible(tid):
+        if mid in self._bannered:
             return
         self._bannered = (self._bannered + [mid])[-100:]
         self.sounds.play_message()
+        if self._thread_visible(tid):
+            return
         self.messageArrived.emit({
             "id": mid, "threadId": tid, "title": title, "body": body, "avatar": avatar,
             "initials": initials, "color": color, "code": otp.find_code(body),
