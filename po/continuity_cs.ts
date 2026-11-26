@@ -125,6 +125,14 @@
 <context>
     <name>ConversationDelegate</name>
     <message>
+        <source>Unpin</source>
+        <translation>Odepnout</translation>
+    </message>
+    <message>
+        <source>Pin</source>
+        <translation>Připnout</translation>
+    </message>
+    <message>
         <source>Mark as Read</source>
         <translation>Označit jako přečtené</translation>
     </message>
@@ -311,6 +319,14 @@
     <message>
         <source>Mark all as read</source>
         <translation>Označit vše jako přečtené</translation>
+    </message>
+    <message>
+        <source>Pinned</source>
+        <translation>Připnuté</translation>
+    </message>
+    <message>
+        <source>Messages</source>
+        <translation>Zprávy</translation>
     </message>
     <message>
         <source>No results</source>
@@ -602,6 +618,10 @@
     <message>
         <source>Unknown caller</source>
         <translation>Neznámé číslo</translation>
+    </message>
+    <message>
+        <source>%1 call</source>
+        <translation>Hovor přes %1</translation>
     </message>
     <message>
         <source>Phone is not connected over Bluetooth</source>

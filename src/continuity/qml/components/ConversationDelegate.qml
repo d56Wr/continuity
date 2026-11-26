@@ -64,13 +64,18 @@ ItemDelegate {
         }
     }
 
-    // right-click: mark as read / unread (like Messages on macOS)
+    // right-click: pin, mark as read / unread (like Messages on macOS)
     TapHandler {
         acceptedButtons: Qt.RightButton
         onTapped: menu.popup()
     }
     Menu {
         id: menu
+        MenuItem {
+            text: model.pinned ? qsTr("Unpin") : qsTr("Pin")
+            icon.name: model.pinned ? "window-unpin" : "window-pin"
+            onTriggered: model.pinned ? phone.unpinThread(model.threadId) : phone.pinThread(model.threadId)
+        }
         MenuItem {
             text: model.unread ? qsTr("Mark as Read") : qsTr("Mark as Unread")
             onTriggered: model.unread ? phone.markRead(model.threadId) : phone.markUnread(model.threadId)

@@ -1,14 +1,17 @@
 import QtQuick
 import "components"
 
-// Floating call HUD above all windows (like the macOS call banner), top-right by default.
-// Shown only while there is a call; works with the main window hidden. Drag it anywhere.
+// Floating call HUD above all windows (like the macOS call banner). It sits in the same corner
+// as the message banners (which then make room below it) until dragged somewhere else.
+// Shown only while there is a call; works with the main window hidden.
 OverlayWindow {
     id: w
     placementKey: "call"
+    followKey: "messages"
     contentWidth: banner.width
     contentHeight: banner.height
     shown: phone.callState !== ""
+    onContentHeightChanged: phone.callBannerHeight = contentHeight
 
     // drag anywhere on the card that isn't a button (declared below the banner so buttons win)
     MouseArea {

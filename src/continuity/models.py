@@ -83,6 +83,7 @@ class FilterHelper:
         self.all: list[dict] = []
         self.query = ""
         self.extra: Callable[[dict], bool] | None = None  # additional predicate (e.g. unread only)
+        self.after: Callable[[list[dict]], None] | None = None  # called with the filtered rows
 
     def set_all(self, rows: list[dict]) -> None:
         self.all = rows
@@ -95,5 +96,7 @@ class FilterHelper:
     def apply(self) -> None:
         q = self.query
         extra = self.extra
-        self.model.set_rows([r for r in self.all
-                             if (not q or self.match(r, q)) and (extra is None or extra(r))])
+        rows = [r for r in self.all if (not q or self.match(r, q)) and (extra is None or extra(r))]
+        self.model.set_rows(rows)
+        if self.after:
+            self.after(rows)

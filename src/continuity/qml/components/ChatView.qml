@@ -19,6 +19,20 @@ Rectangle {
     function focusComposer() { composer.forceActiveFocus() }
 
     readonly property bool hasThread: phone.threadId !== "" && !composing
+    readonly property bool canAttach: phone.messageSource === "google" && hasThread
+
+    // photos and files waiting to be sent with the next message (pasted with Ctrl+V)
+    property var pending: []
+    function addPending(urls) {
+        const next = root.pending.slice()
+        for (const u of urls) if (next.indexOf(String(u)) < 0) next.push(String(u))
+        root.pending = next
+    }
+    function removePending(i) { const next = root.pending.slice(); next.splice(i, 1); root.pending = next }
+    function isImage(u) { return /\.(png|jpe?g|gif|webp|bmp|heic|avif)$/i.test(u) }
+    function fileName(u) { return decodeURIComponent(String(u).split("/").pop()) }
+    property string pendingFor: phone.threadId
+    onPendingForChanged: root.pending = []
 
     ColumnLayout {
         anchors.fill: parent
@@ -187,6 +201,82 @@ Rectangle {
         }
         Item { Layout.fillHeight: true; visible: root.composing }
 
+        // ---------------------------------------------------------- pending attachments
+        Flickable {
+            Layout.fillWidth: true
+            Layout.leftMargin: 14
+            Layout.rightMargin: 14
+            Layout.topMargin: 6
+            Layout.preferredHeight: 76
+            visible: root.pending.length > 0 && root.canAttach
+            contentWidth: pendingRow.width
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            Row {
+                id: pendingRow
+                spacing: 8
+                Repeater {
+                    model: root.pending
+                    delegate: Item {
+                        required property string modelData
+                        required property int index
+                        width: root.isImage(modelData) ? 76 : 180
+                        height: 76
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.topMargin: 6; anchors.rightMargin: 6
+                            radius: 10
+                            color: Theme.hover
+                            border.color: Theme.separator
+                            clip: true
+                            Image {
+                                anchors.fill: parent
+                                visible: root.isImage(modelData)
+                                source: visible ? modelData : ""
+                                fillMode: Image.PreserveAspectCrop
+                                sourceSize.width: 160
+                                asynchronous: true
+                            }
+                            RowLayout {
+                                anchors.fill: parent
+                                anchors.margins: 8
+                                visible: !root.isImage(modelData)
+                                Kirigami.Icon {
+                                    Layout.preferredWidth: 28; Layout.preferredHeight: 28
+                                    source: "mail-attachment-symbolic"
+                                    color: Theme.secondary; isMask: true
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: root.fileName(modelData)
+                                    elide: Text.ElideMiddle
+                                    color: Theme.text
+                                    font.pointSize: Theme.fontSize * 0.9
+                                }
+                            }
+                        }
+                        // remove
+                        Rectangle {
+                            anchors.top: parent.top; anchors.right: parent.right
+                            width: 20; height: 20; radius: 10
+                            color: Theme.secondary
+                            Kirigami.Icon {
+                                anchors.centerIn: parent
+                                width: 12; height: 12
+                                source: "window-close-symbolic"
+                                color: Theme.windowBg; isMask: true
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: root.removePending(index)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // ---------------------------------------------------------- composer
         RowLayout {
             Layout.fillWidth: true
@@ -198,7 +288,7 @@ Rectangle {
             IconButton {
                 iconName: "mail-attachment-symbolic"
                 tip: qsTr("Send photo or file")
-                visible: phone.messageSource === "google" && root.hasThread
+                visible: root.canAttach
                 onClicked: attachDialog.open()
             }
             Rectangle {
@@ -220,6 +310,13 @@ Rectangle {
                         color: Theme.text
                         background: null
                         verticalAlignment: TextEdit.AlignVCenter
+                        // Ctrl+V with a copied image or file attaches it; text pastes as usual
+                        Keys.onPressed: (event) => {
+                            if (event.matches(StandardKey.Paste) && root.canAttach) {
+                                const files = phone.clipboardFiles()
+                                if (files.length > 0) { root.addPending(files); event.accepted = true }
+                            }
+                        }
                         Keys.onReturnPressed: (event) => {
                             if (event.modifiers & Qt.ShiftModifier) { event.accepted = false; return }
                             root.send()
@@ -232,7 +329,8 @@ Rectangle {
                 size: 30
                 filled: true
                 fill: phone.messageSource === "google" && !phone.threadIsRcs && root.hasThread ? Theme.green : Theme.accent
-                enabled: composer.text.trim() !== "" && (root.hasThread || to.text.trim() !== "")
+                enabled: (composer.text.trim() !== "" || (root.pending.length > 0 && root.canAttach))
+                         && (root.hasThread || to.text.trim() !== "")
                 tip: qsTr("Send")
                 onClicked: root.send()
             }
@@ -247,13 +345,17 @@ Rectangle {
     }
     DropArea {
         anchors.fill: parent
-        enabled: phone.messageSource === "google" && root.hasThread
+        enabled: root.canAttach
         onDropped: (d) => { if (d.hasUrls) phone.sendFilesToThread(d.urls) }
     }
 
     function send() {
         const text = composer.text.trim()
-        if (!text) return
+        if (root.pending.length > 0 && root.canAttach) {
+            phone.sendFilesToThread(root.pending)
+            root.pending = []
+        }
+        if (!text) { composer.clear(); return }
         if (root.composing) {
             if (!to.text.trim()) return
             phone.sendNew(to.text, text)

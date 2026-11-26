@@ -41,7 +41,9 @@ Item {
             Avatar {
                 size: 48
                 source: phone.callAvatar
+                // a person icon when we don't know who it is (hidden number, "Teams call")
                 initials: phone.callName && !/^[+\d]/.test(phone.callName)
+                          && (phone.callNumber !== "" || (phone.callApp !== "" && phone.callName.indexOf(phone.callApp) < 0))
                           ? phone.callName.split(" ").map(s => s[0]).join("").slice(0, 2).toUpperCase() : ""
                 color: "#8e8e93"
             }
@@ -59,8 +61,10 @@ Item {
                 }
                 Label {
                     Layout.fillWidth: true
-                    visible: phone.callNumber !== "" && phone.callNumber !== phone.callName
-                    text: phone.callNumber
+                    readonly property string sub: phone.callNumber !== "" ? phone.callNumber
+                        : phone.callApp !== "" && phone.callName.indexOf(phone.callApp) < 0 ? phone.callApp : ""
+                    visible: sub !== "" && sub !== phone.callName
+                    text: sub
                     color: Theme.secondary
                     elide: Text.ElideRight
                     font.features: { "tnum": 1 }

@@ -110,6 +110,40 @@ Item {
                     // like Messages on macOS: open the newest conversation on start
                     onCountChanged: if (count > 0 && phone.threadId === "" && !root.composing && search.text === "")
                                         phone.openThread(model.data(model.index(0, 0), 257))
+                    // pinned conversations on top, with a header over each part
+                    section.property: "section"
+                    section.criteria: ViewSection.FullString
+                    section.delegate: Item {
+                        required property string section
+                        width: list.width
+                        height: phone.hasPinned ? (section === "pinned" ? 30 : 39) : 0
+                        visible: phone.hasPinned
+                        Rectangle {  // divider between pinned and the rest
+                            visible: section !== "pinned"
+                            anchors.top: parent.top; anchors.topMargin: 4
+                            anchors.left: parent.left; anchors.leftMargin: 20
+                            anchors.right: parent.right; anchors.rightMargin: 20
+                            height: 1
+                            color: Theme.separator
+                        }
+                        RowLayout {
+                            anchors.left: parent.left; anchors.leftMargin: 20
+                            anchors.bottom: parent.bottom; anchors.bottomMargin: 6
+                            spacing: 5
+                            Kirigami.Icon {
+                                visible: section === "pinned"
+                                Layout.preferredWidth: 13; Layout.preferredHeight: 13
+                                source: "window-pin-symbolic"
+                                color: Theme.secondary; isMask: true
+                            }
+                            Label {
+                                text: section === "pinned" ? qsTr("Pinned") : qsTr("Messages")
+                                color: Theme.secondary
+                                font.pointSize: Theme.fontSize * 0.85
+                                font.weight: Font.DemiBold
+                            }
+                        }
+                    }
                     delegate: ConversationDelegate {
                         width: list.width
                         selected: !root.composing && model.threadId === phone.threadId

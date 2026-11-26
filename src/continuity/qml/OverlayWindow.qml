@@ -21,6 +21,8 @@ Window {
     property bool atBottom: false    // stuck to the bottom edge (else the top one)
     property int offX: 0             // distance from that left/right edge
     property int offY: 0             // distance from that top/bottom edge
+    property string followKey: ""    // until moved itself, sit where this other overlay sits
+    property int extraY: 0           // push the content further from its top/bottom edge
     default property alias content: holder.data
 
     width: Screen.width
@@ -45,7 +47,7 @@ Window {
 
     // the content's spot, from the corner it is stuck to (follows its size)
     readonly property int homeX: clampX(atLeft ? offX : w.width - holder.width - offX)
-    readonly property int homeY: clampY(atBottom ? w.height - holder.height - offY : offY)
+    readonly property int homeY: clampY(atBottom ? w.height - holder.height - offY - extraY : offY + extraY)
 
     // move by a pointer delta while dragging
     function dragBy(dx, dy) {
@@ -67,12 +69,24 @@ Window {
         phone.setInputRegion(w, holder.x + pad, holder.y + pad, contentWidth, contentHeight)
     }
 
-    Component.onCompleted: {
-        const p = phone.windowPlacement(placementKey)
+    function loadPlacement() {
+        let p = phone.windowPlacement(placementKey)
+        if (Object.keys(p).length === 0 && followKey !== "") p = phone.windowPlacement(followKey)
+        if (Object.keys(p).length === 0) return   // default: top-right
         atLeft = !!p.left
         atBottom = !!p.bottom
         offX = p.x !== undefined ? p.x : (p.right || 0)   // older versions saved {right, top}
         offY = p.y !== undefined ? p.y : (p.top || 0)
+    }
+    Connections {
+        target: phone
+        function onPlacementChanged(key) {
+            if (key === w.followKey && Object.keys(phone.windowPlacement(w.placementKey)).length === 0)
+                w.loadPlacement()
+        }
+    }
+    Component.onCompleted: {
+        loadPlacement()
         updateInput()
     }
     onVisibleChanged: if (visible) updateInput()

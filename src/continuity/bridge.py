@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import logging
 import mimetypes
+import os
 import time
 from datetime import datetime
 
-from PySide6.QtCore import QDateTime, QLocale, QObject, QTimer, QUrl, Property, Signal, Slot
+from PySide6.QtCore import QDateTime, QLocale, QObject, QStandardPaths, QTimer, QUrl, Property, Signal, Slot
 from PySide6.QtGui import QGuiApplication, QRegion
 from gi.repository import GLib
 
@@ -53,7 +54,8 @@ class Phone(QObject):
         super().__init__(parent)
         self._locale = QLocale.system()
         self._conversations = DictListModel(
-            ["threadId", "title", "snippet", "time", "unread", "avatar", "initials", "color", "fromMe", "date", "rcs"],
+            ["threadId", "title", "snippet", "time", "unread", "avatar", "initials", "color", "fromMe", "date", "rcs",
+             "pinned", "section"],
             key="threadId", parent=self)
         self._conv_filter = FilterHelper(self._conversations, lambda r, q: q in r["title"].casefold()
                                          or q in r["snippet"].casefold() or q in r.get("numbers", ""))
@@ -69,6 +71,9 @@ class Phone(QObject):
                                             or number_key(q) and number_key(q) in number_key(r["number"]))
         self._unread_only = False
         self._marked_unread: set[str] = set(settings.get("markedUnread", []) or [])
+        self._pinned: list[str] = list(settings.get("pinnedThreads", []) or [])
+        self._has_pinned = False
+        self._conv_filter.after = self._update_has_pinned
         self._conv_filter.extra = lambda r: r["unread"] or r["threadId"] == self._thread_id \
             if self._unread_only else True
         self._book: ContactBook | None = None
@@ -211,6 +216,7 @@ class Phone(QObject):
             if not self._gm_mode:  # with Google Messages paired the helper announces it
                 self._announce_kc(payload)
         elif kind == "notification_posted":
+            self._note_call_app(payload)
             self._banner_notification(payload)
         elif kind == "media":
             self.mediaChanged.emit()
@@ -342,8 +348,40 @@ class Phone(QObject):
                     "color": _avatar_color(title), "fromMe": m.outgoing, "rcs": False,
                     "numbers": " ".join(m.addresses),
                 })
+        # pinned conversations on top, in the order they were pinned
+        for r in rows:
+            r["pinned"] = r["threadId"] in self._pinned
+            r["section"] = "pinned" if r["pinned"] else "other"
+        rows.sort(key=lambda r: self._pinned.index(r["threadId"]) if r["pinned"] else len(self._pinned))
         self._conv_filter.set_all(rows)
         self.threadChanged.emit()
+
+    hasPinnedChanged = Signal()
+
+    @Property(bool, notify=hasPinnedChanged)
+    def hasPinned(self):
+        """Whether the visible conversation list starts with pinned ones (to show the headers)."""
+        return self._has_pinned
+
+    def _update_has_pinned(self, rows: list[dict]) -> None:
+        has = any(r.get("pinned") for r in rows)
+        if has != self._has_pinned:
+            self._has_pinned = has
+            self.hasPinnedChanged.emit()
+
+    @Slot(str)
+    def pinThread(self, tid: str) -> None:
+        if tid not in self._pinned:
+            self._pinned.append(tid)
+            settings.set("pinnedThreads", self._pinned)
+            self._rebuild_threads()
+
+    @Slot(str)
+    def unpinThread(self, tid: str) -> None:
+        if tid in self._pinned:
+            self._pinned.remove(tid)
+            settings.set("pinnedThreads", self._pinned)
+            self._rebuild_threads()
 
     @Slot(str)
     def filterConversations(self, q: str) -> None:
@@ -581,6 +619,36 @@ class Phone(QObject):
             mime = mimetypes.guess_type(path)[0] or "application/octet-stream"
             self.gm.request("send", lambda r, e: e and self.toast.emit(self.tr("Sending failed: %1").replace("%1", e)),
                             conversation=c["id"], file=path, mime=mime)
+
+    @Slot(result="QVariantList")
+    def clipboardFiles(self) -> list:
+        """Files to attach from the clipboard on Ctrl+V: copied files, or a copied image saved
+        as a PNG. Empty when the clipboard holds only text (then the text is pasted as usual)."""
+        md = QGuiApplication.clipboard().mimeData()
+        if md is None:
+            return []
+        if md.hasUrls():
+            files = [u.toString() for u in md.urls() if u.isLocalFile() and os.path.isfile(u.toLocalFile())]
+            if files:
+                return files
+        if md.hasImage():
+            image = QGuiApplication.clipboard().image()
+            if not image.isNull():
+                folder = os.path.join(QStandardPaths.writableLocation(QStandardPaths.CacheLocation), "pasted")
+                os.makedirs(folder, exist_ok=True)
+                cutoff = time.time() - 86400
+                for old in os.listdir(folder):  # tidy up earlier pastes
+                    f = os.path.join(folder, old)
+                    if os.path.getmtime(f) < cutoff:
+                        os.remove(f)
+                path = os.path.join(folder, time.strftime("image-%Y%m%d-%H%M%S.png"))
+                n = 1
+                while os.path.exists(path):
+                    path = path.removesuffix(".png").rsplit("_", 1)[0] + f"_{n}.png"
+                    n += 1
+                if image.save(path, "PNG"):
+                    return [QUrl.fromLocalFile(path).toString()]
+        return []
 
     @Slot(str, str)
     def sendNew(self, number: str, text: str) -> None:
@@ -1270,6 +1338,36 @@ class Phone(QObject):
     def _call(self):
         return self.tel.ringing() or self.tel.current()
 
+    # Calls from apps (Teams, WhatsApp…) reach the computer over Bluetooth without a number.
+    # The app's call notification, when the phone forwards one, tells who is calling.
+    CALL_APPS = {
+        "com.microsoft.teams": "Microsoft Teams", "com.whatsapp": "WhatsApp",
+        "com.whatsapp.w4b": "WhatsApp Business", "org.thoughtcrime.securesms": "Signal",
+        "com.facebook.orca": "Messenger", "org.telegram.messenger": "Telegram",
+        "com.discord": "Discord", "com.skype.raider": "Skype", "us.zoom.videomeetings": "Zoom",
+        "com.google.android.apps.tachyon": "Google Meet", "com.viber.voip": "Viber",
+        "com.slack": "Slack", "com.google.android.apps.dynamite": "Google Chat",
+    }
+
+    def _note_call_app(self, n: PhoneNotification) -> None:
+        if n.package in self.CALL_APPS:
+            self._last_call_app = (time.monotonic(), n.package, n.title or "")
+
+    def _app_caller(self) -> tuple[str, str]:
+        """(caller name, app name) for a call without a number, from a call app's notification:
+        one still shown on the phone, or one that arrived shortly before the call."""
+        c = self._call()
+        if not c or c.number:
+            return "", ""
+        if self.dev:
+            for n in sorted(self.dev.notifications.values(), key=lambda n: n.id, reverse=True):
+                if n.package in self.CALL_APPS:
+                    return n.title or "", self.CALL_APPS[n.package]
+        at, package, title = getattr(self, "_last_call_app", (0.0, "", ""))
+        if package and c.since - at < 90:
+            return title, self.CALL_APPS[package]
+        return "", ""
+
     @Property(str, notify=callChanged)
     def callState(self):
         c = self._call()
@@ -1282,7 +1380,15 @@ class Phone(QObject):
         c = self._call()
         if not c:
             return ""
-        return self._name(c.number) if c.number else (c.name or self.tr("Unknown caller"))
+        if c.number:
+            return self._name(c.number)
+        who, app = self._app_caller()
+        return c.name or who or (self.tr("%1 call").replace("%1", app) if app else self.tr("Unknown caller"))
+
+    @Property(str, notify=callChanged)
+    def callApp(self):
+        """The app a call without a number came through (e.g. "Microsoft Teams"), if known."""
+        return self._app_caller()[1]
 
     @Property(str, notify=callChanged)
     def callNumber(self):
@@ -1342,11 +1448,27 @@ class Phone(QObject):
         if hasattr(window, "setMask"):
             window.setMask(QRegion(x, y, max(1, w), max(1, h)))
 
+    placementChanged = Signal(str)
+
     @Slot(str, "QVariantMap")
     def saveWindowPlacement(self, key: str, value: dict) -> None:
         placement = dict(settings.get("placement", {}) or {})
         placement[key] = {k: int(v) for k, v in value.items()}
         settings.set("placement", placement)
+        self.placementChanged.emit(key)
+
+    callBannerHeightChanged = Signal()
+
+    @Property(int, notify=callBannerHeightChanged)
+    def callBannerHeight(self):
+        """Height of the call window, so banners in the same corner can make room for it."""
+        return getattr(self, "_call_banner_height", 0)
+
+    @callBannerHeight.setter
+    def callBannerHeight(self, h: int):
+        if h != self.callBannerHeight:
+            self._call_banner_height = h
+            self.callBannerHeightChanged.emit()
 
     @Slot()
     def toggleSpeakerMute(self):

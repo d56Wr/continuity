@@ -12,6 +12,16 @@ OverlayWindow {
     shown: stack.count > 0
     wantsKeyboard: stack.interacting
 
+    // make room for the call window when it sits in the same corner
+    property var callPlacement: phone.windowPlacement("call")
+    Connections {
+        target: phone
+        function onPlacementChanged(key) { if (key === "call") w.callPlacement = phone.windowPlacement("call") }
+    }
+    readonly property bool sharesCorner: Object.keys(callPlacement).length === 0
+        || (!!callPlacement.left === w.atLeft && !!callPlacement.bottom === w.atBottom)
+    extraY: phone.callState !== "" && sharesCorner ? phone.callBannerHeight + 10 : 0
+
     MessageStack {
         id: stack; x: w.pad; y: w.pad
         growUp: w.atBottom
